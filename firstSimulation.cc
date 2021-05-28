@@ -222,7 +222,7 @@ void DestRxPkt (Ptr<const Packet> packet)
   startTimeRng->SetAttribute ("Min", DoubleValue (0.0));
   startTimeRng->SetAttribute ("Max", DoubleValue (1.0));
 
-  uint16_t port = 1000;
+  uint16_t port = 5555;
   uint32_t srcNodeId = 0;
   uint32_t destNodeId = backbone.GetN() - 1;
   Ptr<Node> srcNode = backbone.Get(srcNodeId);
