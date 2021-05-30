@@ -327,7 +327,7 @@ uint16_t appport = 9;
 
 
   uint32_t packetSize = 1000; // bytes
-  uint32_t numPackets = 10;
+  uint32_t numPackets = 40;
   //uint32_t numNodes = 25;  // by default, 5x5
   uint32_t sinkNode = 18;
   uint32_t sourceNode = 1;
