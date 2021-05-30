@@ -96,6 +96,31 @@
  // This function will be used below as a trace sink, if the command-line
  // argument or default value "useCourseChangeCallback" is set to true
  //
+ void ReceivePacket (Ptr<Socket> socket)
+{
+  while (socket->Recv ())
+    {
+      NS_LOG_UNCOND ("Received one packet!");
+    }
+}
+
+static void GenerateTraffic (Ptr<Socket> socket, uint32_t pktSize,
+                             uint32_t pktCount, Time pktInterval )
+{
+  if (pktCount > 0)
+    {
+      socket->Send (Create<Packet> (pktSize));
+      Simulator::Schedule (pktInterval, &GenerateTraffic,
+                           socket, pktSize,pktCount - 1, pktInterval);
+    }
+  else
+    {
+      socket->Close ();
+    }
+}
+
+
+
  static void
  CourseChangeCallback (std::string path, Ptr<const MobilityModel> model)
  {
@@ -110,14 +135,22 @@ void DestRxPkt (Ptr<const Packet> packet)
  int
  main (int argc, char *argv[])
  {
+
+
+
+
+
+  double interval = 1.0; // seconds
+  Time interPacketInterval = Seconds (interval);
    //
    // First, we declare and initialize a few local variables that control some
    // simulation parameters.
    //
+   std::string phyMode ("DsssRate1Mbps");
    uint32_t backboneNodes = 20;
    uint32_t stopTime = 30;
    bool useCourseChangeCallback = false;
-   uint32_t pktPerSec = 30;
+   uint32_t pktPerSec = 10;
    uint32_t payloadSize = 1500;
  
    //
@@ -165,25 +198,35 @@ void DestRxPkt (Ptr<const Packet> packet)
    // our container
    //
    WifiHelper wifi;
+   wifi.SetStandard (WIFI_STANDARD_80211b);
+   wifi.SetRemoteStationManager ("ns3::ConstantRateWifiManager",
+                                 "DataMode", StringValue (phyMode),
+                                 "ControlMode",StringValue (phyMode));
    WifiMacHelper mac;
    mac.SetType ("ns3::AdhocWifiMac");
-   wifi.SetRemoteStationManager ("ns3::ConstantRateWifiManager",
-                                 "DataMode", StringValue ("OfdmRate54Mbps"));
+    
    YansWifiPhyHelper wifiPhy;
    wifiPhy.SetPcapDataLinkType (WifiPhyHelper::DLT_IEEE802_11_RADIO);
+
    YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default ();
    wifiPhy.SetChannel (wifiChannel.Create ());
+
    NetDeviceContainer backboneDevices = wifi.Install (wifiPhy, mac, backbone);
  
    // We enable OLSR (which will be consulted at a higher priority than
    // the global routing) on the backbone ad hoc backboneNodes
    NS_LOG_INFO ("Enabling OLSR routing on all backbone backboneNodes");
    OlsrHelper olsr;
+  Ipv4StaticRoutingHelper staticRouting;
+
+  Ipv4ListRoutingHelper list;
+  list.Add (staticRouting, 0);
+  list.Add (olsr, 10);
    //
    // Add the IPv4 protocol stack to the backboneNodes in our container
    //
    InternetStackHelper internet;
-   internet.SetRoutingHelper (olsr); // has effect on the next Install ()
+   internet.SetRoutingHelper (list); // has effect on the next Install ()
    internet.Install (backbone);
  
    //
@@ -192,7 +235,7 @@ void DestRxPkt (Ptr<const Packet> packet)
    //
    Ipv4AddressHelper ipAddrs;
    ipAddrs.SetBase ("192.168.0.0", "255.255.255.0");
-   ipAddrs.Assign (backboneDevices);
+   Ipv4InterfaceContainer i=ipAddrs.Assign (backboneDevices);
  
    //
    // The ad-hoc network backboneNodes need a mobility model so we aggregate one to
@@ -202,14 +245,15 @@ void DestRxPkt (Ptr<const Packet> packet)
    mobility.SetPositionAllocator ("ns3::GridPositionAllocator",
                                   "MinX", DoubleValue (20.0),
                                   "MinY", DoubleValue (20.0),
-                                  "DeltaX", DoubleValue (20.0),
-                                  "DeltaY", DoubleValue (20.0),
+                                  "DeltaX", DoubleValue (10.0),
+                                  "DeltaY", DoubleValue (10.0),
                                   "GridWidth", UintegerValue (5),
                                   "LayoutType", StringValue ("RowFirst"));
    mobility.SetMobilityModel ("ns3::RandomDirection2dMobilityModel",
                               "Bounds", RectangleValue (Rectangle (-500, 500, -500, 500)),
-                              "Speed", StringValue ("ns3::ConstantRandomVariable[Constant=0.2]"),
+                              "Speed", StringValue ("ns3::ConstantRandomVariable[Constant=1]"),
                               "Pause", StringValue ("ns3::ConstantRandomVariable[Constant=0.2]"));
+    //mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
    mobility.Install (backbone);
 
 
@@ -222,7 +266,7 @@ void DestRxPkt (Ptr<const Packet> packet)
   startTimeRng->SetAttribute ("Min", DoubleValue (0.0));
   startTimeRng->SetAttribute ("Max", DoubleValue (1.0));
 
-  uint16_t port = 5555;
+  uint32_t port = 9;
   uint32_t srcNodeId = 0;
   uint32_t destNodeId = backbone.GetN() - 1;
   Ptr<Node> srcNode = backbone.Get(srcNodeId);
@@ -237,8 +281,8 @@ void DestRxPkt (Ptr<const Packet> packet)
   UdpClientHelper source (destAddress);
   source.SetAttribute ("MaxPackets", UintegerValue (pktPerSec * stopTime));
   source.SetAttribute ("PacketSize", UintegerValue (payloadSize));
-  Time interPacketInterval = Seconds (1.0/pktPerSec);
-  source.SetAttribute ("Interval", TimeValue (interPacketInterval)); //packets/s
+  Time interPacketIntervalp = Seconds (1.0/pktPerSec);
+  source.SetAttribute ("Interval", TimeValue (interPacketIntervalp)); //packets/s
 
   ApplicationContainer sourceApps = source.Install (srcNode);
   sourceApps.Start (Seconds (0.0));
@@ -253,6 +297,54 @@ void DestRxPkt (Ptr<const Packet> packet)
   Ptr<UdpServer> udpServer = DynamicCast<UdpServer>(sinkApps.Get(0));
   udpServer->TraceConnectWithoutContext ("Rx", MakeCallback (&DestRxPkt));
 
+
+/*
+uint16_t appport = 9;
+  // Conveniently, the variable "backboneNodes" holds this node index value
+   Ptr<Node> appSource = NodeList::GetNode (0);
+     // We want the sink to be the last node created in the topology.
+    uint32_t lastNodeIndex = 1;//;
+     Ptr<Node> appSink = NodeList::GetNode (lastNodeIndex);
+     // Let's fetch the IP address of the last node, which is on Ipv4Interface 1
+     Ipv4Address remoteAddr = appSink->GetObject<Ipv4> ()->GetAddress (1, 0).GetLocal ();
+   
+     OnOffHelper onoff ("ns3::UdpSocketFactory", 
+                        Address (InetSocketAddress (remoteAddr, appport)));
+   
+     ApplicationContainer apps = onoff.Install (appSource);
+     apps.Start (Seconds (3));
+     apps.Stop (Seconds (stopTime - 1));
+   
+     // Create a packet sink to receive these packets
+     PacketSinkHelper sink ("ns3::UdpSocketFactory", 
+                            InetSocketAddress (Ipv4Address::GetAny (), appport));
+     apps = sink.Install (appSink);
+     apps.Start (Seconds (3));
+
+*/
+
+
+
+
+  uint32_t packetSize = 1000; // bytes
+  uint32_t numPackets = 10;
+  //uint32_t numNodes = 25;  // by default, 5x5
+  uint32_t sinkNode = 18;
+  uint32_t sourceNode = 1;
+TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
+  Ptr<Socket> recvSink = Socket::CreateSocket (backbone.Get (sinkNode), tid);
+  InetSocketAddress local = InetSocketAddress (Ipv4Address::GetAny (), 80);
+  recvSink->Bind (local);
+  recvSink->SetRecvCallback (MakeCallback (&ReceivePacket));
+
+  Ptr<Socket> sourceS = Socket::CreateSocket (backbone.Get (sourceNode), tid);
+  InetSocketAddress remote = InetSocketAddress (i.GetAddress (sinkNode, 0), 80);
+  sourceS->Connect (remote);
+
+
+// Give OLSR time to converge-- 30 seconds perhaps
+  Simulator::Schedule (Seconds (3.0), &GenerateTraffic,
+                       sourceS, packetSize, numPackets, interPacketInterval);
   // Print node positions
   NS_LOG_UNCOND ("Node Positions:");
   for (uint32_t i = 0; i < backbone.GetN(); i++)
@@ -311,6 +403,8 @@ void DestRxPkt (Ptr<const Packet> packet)
    NS_LOG_INFO ("Run Simulation.");
    Simulator::Stop (Seconds (stopTime));
    Simulator::Run ();
+   std::cout<<"Num First Packets"<<g_rxPktNum<<std::endl;
+   
    Simulator::Destroy ();
    
  }
