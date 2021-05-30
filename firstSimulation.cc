@@ -300,7 +300,7 @@ int main(int argc, char *argv[])
   uint16_t sourceOnOffNode = 3;
   uint16_t appport = 5000;
   uint32_t sinkOnOffNode = 14;
-  uint32_t packetSizeOnOff = 128;
+  uint32_t packetSizeOnOff = 1024;
   // Conveniently, the variable "backboneNodes" holds this node index value
   Ptr<Node> appSourceOnOff = NodeList::GetNode(sourceOnOffNode);
   // We want the sink to be the last node created in the topology.
@@ -315,7 +315,7 @@ int main(int argc, char *argv[])
        // onoff.SetAttribute ("OnTime",  StringValue ("ns3::ConstantRandomVariable[Constant=1]"));
        // onoff.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0]"));
   ApplicationContainer appsOnOff = onoff.Install(appSourceOnOff);
-  appsOnOff.Start(Seconds(8));
+  appsOnOff.Start(Seconds(3));
   appsOnOff.Stop(Seconds(stopTime - 1));
 
   // Create a packet sink to receive these packets
@@ -393,9 +393,29 @@ Ptr<PacketSink> packetSinkServer = DynamicCast<PacketSink>(appsOnOff.Get(0));
   //                                                                       //
 
   NS_LOG_INFO("Run Simulation.");
-  Simulator::Stop(Seconds(stopTime));
-  Simulator::Run();
+
+ 
+   // Flow monitor
+    Ptr<FlowMonitor> flowMonitor;
+    FlowMonitorHelper flowHelper;
+    flowMonitor = flowHelper.InstallAll();
+
+    Simulator::Stop (Seconds (stopTime));
+    Simulator::Run ();
+    Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowHelper.GetClassifier ());
+    std::map<FlowId, FlowMonitor::FlowStats> stats = flowMonitor->GetFlowStats ();
+    std::cout << std::endl << "*** Flow monitor statistics ***" << std::endl;
+    std::cout << "  Tx Packets:   " << stats[1].txPackets << std::endl;
+    std::cout << "  Tx Bytes:   " << stats[1].txBytes << std::endl;
+    std::cout << "  Offered Load: " << stats[1].txBytes * 8.0 / (stats[1].timeLastTxPacket.GetSeconds () - stats[1].timeFirstTxPacket.GetSeconds ()) / 1000000 << " Mbps" << std::endl;
+    std::cout << "  Rx Packets:   " << stats[1].rxPackets << std::endl;
+    std::cout << "  Rx Bytes:   " << stats[1].rxBytes<< std::endl;
+    std::cout << "  Throughput: " << stats[1].rxBytes * 8.0 / (stats[1].timeLastRxPacket.GetSeconds () - stats[1].timeFirstRxPacket.GetSeconds ()) / 1000000 << " Mbps" << std::endl;
+    std::cout << "  Mean delay:   " << stats[1].delaySum.GetSeconds () / stats[1].rxPackets << std::endl;
+    std::cout << "  Mean jitter:   " << stats[1].jitterSum.GetSeconds () / (stats[1].rxPackets - 1) << std::endl;
+    flowMonitor->SerializeToXmlFile("data.flowmon", true, true);
   std::cout << "Number of Udp Packets received by UdpServer:" << g_rxPktNum << std::endl;
   std::cout<<"Number of OnOffPackets received:"<<packetSinkServer->GetTotalRx()/packetSizeOnOff<<std::endl; 	
+  
   Simulator::Destroy();
 }
