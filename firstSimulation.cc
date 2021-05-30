@@ -299,7 +299,8 @@ int main(int argc, char *argv[])
 
   uint16_t sourceOnOffNode = 3;
   uint16_t appport = 5000;
-  uint32_t sinkOnOffNode = 4;
+  uint32_t sinkOnOffNode = 14;
+  uint32_t packetSizeOnOff = 128;
   // Conveniently, the variable "backboneNodes" holds this node index value
   Ptr<Node> appSourceOnOff = NodeList::GetNode(sourceOnOffNode);
   // We want the sink to be the last node created in the topology.
@@ -310,7 +311,9 @@ int main(int argc, char *argv[])
 
   OnOffHelper onoff("ns3::UdpSocketFactory",
                     Address(InetSocketAddress(remoteAddr, appport)));
-
+  onoff.SetAttribute ("PacketSize", UintegerValue (packetSizeOnOff));
+       // onoff.SetAttribute ("OnTime",  StringValue ("ns3::ConstantRandomVariable[Constant=1]"));
+       // onoff.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0]"));
   ApplicationContainer appsOnOff = onoff.Install(appSourceOnOff);
   appsOnOff.Start(Seconds(8));
   appsOnOff.Stop(Seconds(stopTime - 1));
@@ -393,6 +396,6 @@ Ptr<PacketSink> packetSinkServer = DynamicCast<PacketSink>(appsOnOff.Get(0));
   Simulator::Stop(Seconds(stopTime));
   Simulator::Run();
   std::cout << "Number of Udp Packets received by UdpServer:" << g_rxPktNum << std::endl;
-  std::cout<<"Number of OnOffPackets received:"<<packetSinkServer->GetTotalRx()/512<<std::endl; 	
+  std::cout<<"Number of OnOffPackets received:"<<packetSinkServer->GetTotalRx()/packetSizeOnOff<<std::endl; 	
   Simulator::Destroy();
 }
