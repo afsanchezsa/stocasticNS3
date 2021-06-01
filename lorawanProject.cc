@@ -3,6 +3,21 @@
  * devices. The metric of interest for this script is the throughput of the
  * network.
  */
+#include "ns3/core-module.h"
+#include "ns3/applications-module.h"
+#include "ns3/opengym-module.h"
+#include "ns3/mobility-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/spectrum-module.h"
+#include "ns3/stats-module.h"
+#include "ns3/flow-monitor-module.h"
+#include "ns3/traffic-control-module.h"
+#include "ns3/node-list.h"
+
+
+
+
 
 #include "ns3/end-device-lora-phy.h"
 #include "ns3/gateway-lora-phy.h"
@@ -31,8 +46,170 @@
 
 using namespace ns3;
 using namespace lorawan;
-
+//
+ // Define logging keyword for this file
+ //
 NS_LOG_COMPONENT_DEFINE ("ComplexLorawanNetworkExample");
+ /*
+Define observation space
+*/
+Ptr<OpenGymSpace> MyGetObservationSpace(void)
+{
+  uint32_t nodeNum = NodeList::GetNNodes ();
+  float low = 0.0;
+  float high = 100.0;
+  std::vector<uint32_t> shape = {nodeNum,};
+  std::string dtype = TypeNameGet<uint32_t> ();
+  Ptr<OpenGymBoxSpace> space = CreateObject<OpenGymBoxSpace> (low, high, shape, dtype);
+  NS_LOG_UNCOND ("MyGetObservationSpace: " << space);
+  return space;
+}
+
+/*
+Define action space
+*/
+Ptr<OpenGymSpace> MyGetActionSpace(void)
+{
+  uint32_t nodeNum = NodeList::GetNNodes ();
+  float low = 0.0;
+  float high = 100.0;
+  std::vector<uint32_t> shape = {nodeNum,};
+  std::string dtype = TypeNameGet<uint32_t> ();
+  Ptr<OpenGymBoxSpace> space = CreateObject<OpenGymBoxSpace> (low, high, shape, dtype);
+  NS_LOG_UNCOND ("MyGetActionSpace: " << space);
+  return space;
+}
+
+/*
+Define game over condition
+*/
+bool MyGetGameOver(void)
+{
+  bool isGameOver = false;
+  NS_LOG_UNCOND ("MyGetGameOver: " << isGameOver);
+  return isGameOver;
+}
+
+Ptr<WifiMacQueue> GetQueue(Ptr<Node> node)
+{
+  Ptr<NetDevice> dev = node->GetDevice (0);
+  Ptr<WifiNetDevice> wifi_dev = DynamicCast<WifiNetDevice> (dev);
+  Ptr<WifiMac> wifi_mac = wifi_dev->GetMac ();
+  Ptr<RegularWifiMac> rmac = DynamicCast<RegularWifiMac> (wifi_mac);
+  PointerValue ptr;
+  rmac->GetAttribute ("Txop", ptr);
+  Ptr<Txop> txop = ptr.Get<Txop> ();
+  Ptr<WifiMacQueue> queue = txop->GetWifiMacQueue ();
+  return queue;
+}
+
+/*
+Collect observations
+*/
+Ptr<OpenGymDataContainer> MyGetObservation(void)
+{
+  uint32_t nodeNum = NodeList::GetNNodes ();
+  std::vector<uint32_t> shape = {nodeNum,};
+  Ptr<OpenGymBoxContainer<uint32_t> > box = CreateObject<OpenGymBoxContainer<uint32_t> >(shape);
+
+  for (NodeList::Iterator i = NodeList::Begin (); i != NodeList::End (); ++i) {
+    Ptr<Node> node = *i;
+    Ptr<WifiMacQueue> queue = GetQueue (node);
+    uint32_t value = queue->GetNPackets();
+    box->AddValue(value);
+  }
+
+  NS_LOG_UNCOND ("MyGetObservation: " << box);
+  return box;
+}
+
+uint64_t g_rxPktNum = 0;
+void DestRxPkt (Ptr<const Packet> packet)
+{
+  NS_LOG_UNCOND ("Client received a packet of " << packet->GetSize () << " bytes");
+  g_rxPktNum++;
+}
+
+/*
+Define reward function
+*/
+float MyGetReward(void)
+{
+  static float lastValue = 0.0;
+  float reward = g_rxPktNum - lastValue;
+  lastValue = g_rxPktNum;
+  return reward;
+}
+
+/*
+Define extra info. Optional
+*/
+std::string MyGetExtraInfo(void)
+{
+  std::string myInfo = "linear-wireless-mesh";
+  myInfo += "|123";
+  NS_LOG_UNCOND("MyGetExtraInfo: " << myInfo);
+  return myInfo;
+}
+
+bool SetCw(Ptr<Node> node, uint32_t cwMinValue=0, uint32_t cwMaxValue=0)
+{
+  Ptr<NetDevice> dev = node->GetDevice (0);
+  Ptr<WifiNetDevice> wifi_dev = DynamicCast<WifiNetDevice> (dev);
+  Ptr<WifiMac> wifi_mac = wifi_dev->GetMac ();
+  Ptr<RegularWifiMac> rmac = DynamicCast<RegularWifiMac> (wifi_mac);
+  PointerValue ptr;
+  rmac->GetAttribute ("Txop", ptr);
+  Ptr<Txop> txop = ptr.Get<Txop> ();
+
+  // if both set to the same value then we have uniform backoff?
+  if (cwMinValue != 0) {
+    NS_LOG_DEBUG ("Set CW min: " << cwMinValue);
+    txop->SetMinCw(cwMinValue);
+  }
+
+  if (cwMaxValue != 0) {
+    NS_LOG_DEBUG ("Set CW max: " << cwMaxValue);
+    txop->SetMaxCw(cwMaxValue);
+  }
+  return true;
+}
+
+/*
+Execute received actions
+*/
+bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
+{
+  NS_LOG_UNCOND ("MyExecuteActions: " << action);
+
+  Ptr<OpenGymBoxContainer<uint32_t> > box = DynamicCast<OpenGymBoxContainer<uint32_t> >(action);
+  std::vector<uint32_t> actionVector = box->GetData();
+
+  uint32_t nodeNum = NodeList::GetNNodes ();
+  for (uint32_t i=0; i<nodeNum; i++)
+  {
+    Ptr<Node> node = NodeList::GetNode(i);
+    uint32_t cwSize = actionVector.at(i);
+    SetCw(node, cwSize, cwSize);
+  }
+
+  return true;
+}
+
+void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGymInterface)
+{
+  Simulator::Schedule (Seconds(envStepTime), &ScheduleNextStateRead, envStepTime, openGymInterface);
+  openGymInterface->NotifyCurrentState();
+}
+
+ //
+ // This function will be used below as a trace sink, if the command-line
+ // argument or default value "useCourseChangeCallback" is set to true
+ //
+
+
+
+//NS_LOG_COMPONENT_DEFINE ("ComplexLorawanNetworkExample");
 
 // Network settings
 int nDevices = 200;
