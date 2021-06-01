@@ -92,7 +92,7 @@ bool MyGetGameOver(void)
 void Tracer(Ptr< const Packet > packet)
 {  NS_LOG_UNCOND ("Se perdio" );
   }
-void ConfigureTracing(Ptr<Node> node,u_int8_t windowValue)
+void ConfigureTracing(Ptr<Node> node,u_int8_t windowValue,u_int8_t dataRate)
 {//// end-device-lorawan-mac.h setDatarate
 /// y las window en class-a-end-device-lorawan-mac.h 
   Ptr<NetDevice> dev = node->GetDevice (0);
@@ -101,8 +101,8 @@ void ConfigureTracing(Ptr<Node> node,u_int8_t windowValue)
   Ptr<ClassAEndDeviceLorawanMac>endDeviceMac=DynamicCast<ClassAEndDeviceLorawanMac>(lora_mac);
   
   //lora_mac->TraceConnectWithoutContext ("CannotSendBecauseDutyCycle", MakeCallback(&Tracer));
-  //endDeviceMac->SetSecondReceiveWindowDataRate(windowValue);
-  endDeviceMac->SetDataRate(windowValue);
+  endDeviceMac->SetSecondReceiveWindowDataRate(windowValue);
+  endDeviceMac->SetDataRate(dataRate);
   
   
 }
@@ -118,15 +118,15 @@ void ConfigureTracing(Ptr<Node> node,u_int8_t windowValue)
 //NS_LOG_COMPONENT_DEFINE ("ComplexLorawanNetworkExample");
 
 // Network settings
-int nDevices = 200;
-int nGateways = 1;
-double radius = 6400; //Note that due to model updates, 7500 m is no longer the maximum distance 
+int nDevices = 20;
+int nGateways = 3;
+double radius = 64; //Note that due to model updates, 7500 m is no longer the maximum distance 
 double simulationTime = 600;
 
 // Channel model
 bool realisticChannelModel = false;
 
-int appPeriodSeconds = 2;
+int appPeriodSeconds = 1;
 
 // Output control
 bool print = true;
@@ -276,7 +276,7 @@ main (int argc, char *argv[])
 
 
       ///////////////////////
-      ConfigureTracing(node,2);
+      //ConfigureTracing(node,1,250);
     }
 
 /*NodeContainer::Iterator j=endDevices.Begin();
@@ -373,7 +373,11 @@ ConfigureTracing(firstNode);*/
       "Min", DoubleValue (0), "Max", DoubleValue (10));
   ApplicationContainer appContainer = appHelper.Install (endDevices);
   Ptr<PeriodicSender> senderApp=DynamicCast<PeriodicSender> (appContainer.Get(0));
-  //senderApp->SetInterval(Seconds(0.02));
+  
+////////////*cambio de rendimiento*///////////////
+  senderApp->SetInterval(Seconds(100));///se necesita valores grandes para ver cambio
+  senderApp->SetPacketSize(10);// no se necesita valores grandes para ver cambio
+  //////////////////////////
   appContainer.Start (Seconds (0));
   appContainer.Stop (appStopTime);
 
@@ -421,11 +425,12 @@ double envStepTime = 0.3;
   // Simulation //
   ////////////////
 
-  Simulator::Stop (appStopTime + Hours (1));
+
+  Simulator::Stop (appStopTime );
 
   NS_LOG_INFO ("Running simulation...");
   Simulator::Run ();
-
+  
   Simulator::Destroy ();
 
   ///////////////////////////
@@ -434,7 +439,7 @@ double envStepTime = 0.3;
   NS_LOG_INFO ("Computing performance metrics...");
 
   LoraPacketTracker &tracker = helper.GetPacketTracker ();
-  std::cout << tracker.CountMacPacketsGlobally (Seconds (0), appStopTime + Hours (1)) << std::endl;
-
+  std::cout << tracker.CountMacPacketsGlobally (Seconds (0), appStopTime ) << std::endl;
+std::cout<<tracker.CountMacPacketsGloballyCpsr(Seconds (0), appStopTime )<<std::endl;
   return 0;
 }
