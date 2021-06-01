@@ -92,15 +92,18 @@ bool MyGetGameOver(void)
 void Tracer(Ptr< const Packet > packet)
 {  NS_LOG_UNCOND ("Se perdio" );
   }
-void ConfigureTracing(Ptr<Node> node)
+void ConfigureTracing(Ptr<Node> node,u_int8_t windowValue)
 {//// end-device-lorawan-mac.h setDatarate
 /// y las window en class-a-end-device-lorawan-mac.h 
   Ptr<NetDevice> dev = node->GetDevice (0);
   Ptr<LoraNetDevice> lora_dev = DynamicCast<LoraNetDevice> (dev);
   Ptr<LorawanMac> lora_mac = lora_dev->GetMac ();
-  lora_mac->TraceConnectWithoutContext ("CannotSendBecauseDutyCycle", MakeCallback(&Tracer));
-
-
+  Ptr<ClassAEndDeviceLorawanMac>endDeviceMac=DynamicCast<ClassAEndDeviceLorawanMac>(lora_mac);
+  
+  //lora_mac->TraceConnectWithoutContext ("CannotSendBecauseDutyCycle", MakeCallback(&Tracer));
+  //endDeviceMac->SetSecondReceiveWindowDataRate(windowValue);
+  endDeviceMac->SetDataRate(windowValue);
+  
   
 }
 
@@ -123,7 +126,7 @@ double simulationTime = 600;
 // Channel model
 bool realisticChannelModel = false;
 
-int appPeriodSeconds = 600;
+int appPeriodSeconds = 2;
 
 // Output control
 bool print = true;
@@ -270,11 +273,15 @@ main (int argc, char *argv[])
       Ptr<Node> node = *j;
       Ptr<LoraNetDevice> loraNetDevice = node->GetDevice (0)->GetObject<LoraNetDevice> ();
       Ptr<LoraPhy> phy = loraNetDevice->GetPhy ();
+
+
+      ///////////////////////
+      ConfigureTracing(node,2);
     }
 
-NodeContainer::Iterator j=endDevices.Begin();
+/*NodeContainer::Iterator j=endDevices.Begin();
 Ptr<Node> firstNode=*j;
-ConfigureTracing(firstNode);
+ConfigureTracing(firstNode);*/
   /*********************
    *  Create Gateways  *
    *********************/
