@@ -89,118 +89,21 @@ bool MyGetGameOver(void)
   NS_LOG_UNCOND ("MyGetGameOver: " << isGameOver);
   return isGameOver;
 }
-
-Ptr<WifiMacQueue> GetQueue(Ptr<Node> node)
-{
+void Tracer(Ptr< const Packet > packet)
+{  NS_LOG_UNCOND ("Se perdio" );
+  }
+void ConfigureTracing(Ptr<Node> node)
+{//// end-device-lorawan-mac.h setDatarate
+/// y las window en class-a-end-device-lorawan-mac.h 
   Ptr<NetDevice> dev = node->GetDevice (0);
-  Ptr<WifiNetDevice> wifi_dev = DynamicCast<WifiNetDevice> (dev);
-  Ptr<WifiMac> wifi_mac = wifi_dev->GetMac ();
-  Ptr<RegularWifiMac> rmac = DynamicCast<RegularWifiMac> (wifi_mac);
-  PointerValue ptr;
-  rmac->GetAttribute ("Txop", ptr);
-  Ptr<Txop> txop = ptr.Get<Txop> ();
-  Ptr<WifiMacQueue> queue = txop->GetWifiMacQueue ();
-  return queue;
+  Ptr<LoraNetDevice> lora_dev = DynamicCast<LoraNetDevice> (dev);
+  Ptr<LorawanMac> lora_mac = lora_dev->GetMac ();
+  lora_mac->TraceConnectWithoutContext ("CannotSendBecauseDutyCycle", MakeCallback(&Tracer));
+
+
+  
 }
 
-/*
-Collect observations
-*/
-Ptr<OpenGymDataContainer> MyGetObservation(void)
-{
-  uint32_t nodeNum = NodeList::GetNNodes ();
-  std::vector<uint32_t> shape = {nodeNum,};
-  Ptr<OpenGymBoxContainer<uint32_t> > box = CreateObject<OpenGymBoxContainer<uint32_t> >(shape);
-
-  for (NodeList::Iterator i = NodeList::Begin (); i != NodeList::End (); ++i) {
-    Ptr<Node> node = *i;
-    Ptr<WifiMacQueue> queue = GetQueue (node);
-    uint32_t value = queue->GetNPackets();
-    box->AddValue(value);
-  }
-
-  NS_LOG_UNCOND ("MyGetObservation: " << box);
-  return box;
-}
-
-uint64_t g_rxPktNum = 0;
-void DestRxPkt (Ptr<const Packet> packet)
-{
-  NS_LOG_UNCOND ("Client received a packet of " << packet->GetSize () << " bytes");
-  g_rxPktNum++;
-}
-
-/*
-Define reward function
-*/
-float MyGetReward(void)
-{
-  static float lastValue = 0.0;
-  float reward = g_rxPktNum - lastValue;
-  lastValue = g_rxPktNum;
-  return reward;
-}
-
-/*
-Define extra info. Optional
-*/
-std::string MyGetExtraInfo(void)
-{
-  std::string myInfo = "linear-wireless-mesh";
-  myInfo += "|123";
-  NS_LOG_UNCOND("MyGetExtraInfo: " << myInfo);
-  return myInfo;
-}
-
-bool SetCw(Ptr<Node> node, uint32_t cwMinValue=0, uint32_t cwMaxValue=0)
-{
-  Ptr<NetDevice> dev = node->GetDevice (0);
-  Ptr<WifiNetDevice> wifi_dev = DynamicCast<WifiNetDevice> (dev);
-  Ptr<WifiMac> wifi_mac = wifi_dev->GetMac ();
-  Ptr<RegularWifiMac> rmac = DynamicCast<RegularWifiMac> (wifi_mac);
-  PointerValue ptr;
-  rmac->GetAttribute ("Txop", ptr);
-  Ptr<Txop> txop = ptr.Get<Txop> ();
-
-  // if both set to the same value then we have uniform backoff?
-  if (cwMinValue != 0) {
-    NS_LOG_DEBUG ("Set CW min: " << cwMinValue);
-    txop->SetMinCw(cwMinValue);
-  }
-
-  if (cwMaxValue != 0) {
-    NS_LOG_DEBUG ("Set CW max: " << cwMaxValue);
-    txop->SetMaxCw(cwMaxValue);
-  }
-  return true;
-}
-
-/*
-Execute received actions
-*/
-bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
-{
-  NS_LOG_UNCOND ("MyExecuteActions: " << action);
-
-  Ptr<OpenGymBoxContainer<uint32_t> > box = DynamicCast<OpenGymBoxContainer<uint32_t> >(action);
-  std::vector<uint32_t> actionVector = box->GetData();
-
-  uint32_t nodeNum = NodeList::GetNNodes ();
-  for (uint32_t i=0; i<nodeNum; i++)
-  {
-    Ptr<Node> node = NodeList::GetNode(i);
-    uint32_t cwSize = actionVector.at(i);
-    SetCw(node, cwSize, cwSize);
-  }
-
-  return true;
-}
-
-void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGymInterface)
-{
-  Simulator::Schedule (Seconds(envStepTime), &ScheduleNextStateRead, envStepTime, openGymInterface);
-  openGymInterface->NotifyCurrentState();
-}
 
  //
  // This function will be used below as a trace sink, if the command-line
@@ -369,6 +272,9 @@ main (int argc, char *argv[])
       Ptr<LoraPhy> phy = loraNetDevice->GetPhy ();
     }
 
+NodeContainer::Iterator j=endDevices.Begin();
+Ptr<Node> firstNode=*j;
+ConfigureTracing(firstNode);
   /*********************
    *  Create Gateways  *
    *********************/
@@ -455,10 +361,12 @@ main (int argc, char *argv[])
   PeriodicSenderHelper appHelper = PeriodicSenderHelper ();
   appHelper.SetPeriod (Seconds (appPeriodSeconds));
   appHelper.SetPacketSize (23);
+  
   Ptr<RandomVariableStream> rv = CreateObjectWithAttributes<UniformRandomVariable> (
       "Min", DoubleValue (0), "Max", DoubleValue (10));
   ApplicationContainer appContainer = appHelper.Install (endDevices);
-
+  Ptr<PeriodicSender> senderApp=DynamicCast<PeriodicSender> (appContainer.Get(0));
+  //senderApp->SetInterval(Seconds(0.02));
   appContainer.Start (Seconds (0));
   appContainer.Stop (appStopTime);
 
@@ -477,6 +385,30 @@ main (int argc, char *argv[])
 
   //Create a forwarder for each gateway
   forHelper.Install (gateways);
+
+
+
+
+/*
+// OpenGym Env
+uint16_t port = 5555;
+double envStepTime = 0.3; 
+  Ptr<OpenGymInterface> openGymInterface = CreateObject<OpenGymInterface> (port);
+  openGymInterface->SetGetActionSpaceCb( MakeCallback (&MyGetActionSpace) );
+  openGymInterface->SetGetObservationSpaceCb( MakeCallback (&MyGetObservationSpace) );
+  openGymInterface->SetGetGameOverCb( MakeCallback (&MyGetGameOver) );
+  openGymInterface->SetGetObservationCb( MakeCallback (&MyGetObservation) );
+  openGymInterface->SetGetRewardCb( MakeCallback (&MyGetReward) );
+  openGymInterface->SetGetExtraInfoCb( MakeCallback (&MyGetExtraInfo) );
+  openGymInterface->SetExecuteActionsCb( MakeCallback (&MyExecuteActions) );
+
+  Simulator::Schedule (Seconds(0.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
+
+
+*/
+
+
+
 
   ////////////////
   // Simulation //
