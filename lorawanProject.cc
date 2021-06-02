@@ -106,8 +106,28 @@ void ConfigureTracing(Ptr<Node> node,u_int8_t windowValue,u_int8_t dataRate)
   
   
 }
-
-
+void printIntVector(std::vector<int> const &input)
+{
+    for (std::vector<int>::size_type i = 0; i < input.size(); i++) {
+        std::cout << input.at(i) << ' ';
+    }
+    std::cout<<std::endl;
+}
+std::vector<std::string> split(const std::string& str, const std::string& delim)
+{
+    std::vector<std::string> tokens;
+    size_t prev = 0, pos = 0;
+    do
+    {
+        pos = str.find(delim, prev);
+        if (pos == std::string::npos) pos = str.length();
+        std::string token = str.substr(prev, pos-prev);
+        if (!token.empty()) tokens.push_back(token);
+        prev = pos + delim.length();
+    }
+    while (pos < str.length() && prev < str.length());
+    return tokens;
+}
  //
  // This function will be used below as a trace sink, if the command-line
  // argument or default value "useCourseChangeCallback" is set to true
@@ -439,7 +459,17 @@ double envStepTime = 0.3;
   NS_LOG_INFO ("Computing performance metrics...");
 
   LoraPacketTracker &tracker = helper.GetPacketTracker ();
+  std::string metricsStr=tracker.CountMacPacketsGlobally (Seconds (0), appStopTime ) ;
+  std::vector<std::string>metrics=split(metricsStr," ");
+  std::string sentPacketsStr=metrics.at(0);
+  std::string receivedPacketsStr=metrics.at(1);
+  double sentPackets=std::stod(sentPacketsStr);
+  double receivedPackets=std::stod(receivedPacketsStr);
+  std::cout<<sentPackets<<" "<<receivedPackets<<std::endl;
   std::cout << tracker.CountMacPacketsGlobally (Seconds (0), appStopTime ) << std::endl;
-std::cout<<tracker.CountMacPacketsGloballyCpsr(Seconds (0), appStopTime )<<std::endl;
+//std::cout<<tracker.CountPhyPacketsPerGw(Seconds (0), appStopTime ,0)<<std::endl;
+/*printIntVector(tracker.CountPhyPacketsPerGw(Seconds (0), appStopTime ,0));
+printIntVector(tracker.CountPhyPacketsPerGw(Seconds (0), appStopTime ,1));
+printIntVector(tracker.CountPhyPacketsPerGw(Seconds (0), appStopTime ,2));*/
   return 0;
 }
