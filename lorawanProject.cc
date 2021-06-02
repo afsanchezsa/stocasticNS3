@@ -152,8 +152,10 @@ bool print = true;
 
 /************************/
 int cont=0;
-
-
+int received=0;
+int noMoreReceivers=0;
+int interfered=0;
+int underSensitivity=0;
 namespace std
 {
   enum PacketOutcome{
@@ -184,32 +186,37 @@ void CheckReceptionByAllGWsComplete (std::map<Ptr<Packet const>, std::PacketStat
       std::PacketStatus status = (*it).second;
       for (int j = 0; j < nGateways; j++)
         {
-          switch (status.outcomes.at (j))
+          switch (status.outcomes.at (j))//por si acaso castear a entero lo del switch
             {
-            case RECEIVED:
+            case std::RECEIVED:
               {
                 received += 1;
                 break;
               }
-            /*case UNDER_SENSITIVITY:
-              {
-                underSensitivity += 1;
-                break;
-              }*/
-            case NO_MORE_RECEIVERS:
-              {
-                noMoreReceivers += 1;
-                break;
-              }
-            case INTERFERED:
+              case std::INTERFERED:
               {
                 interfered += 1;
                 break;
               }
-            case UNSET:
+              case std::NO_MORE_RECEIVERS:
+              {
+                noMoreReceivers += 1;
+                break;
+              }
+            case std::UNDER_SENSITIVITY:
+              {
+                underSensitivity += 1;
+                break;
+              }
+                       
+            case std::UNSET:
               {
                 break;
               }
+              default:{
+                break;
+              }
+
             }
         }
       // Remove the packet from the tracker
@@ -221,19 +228,19 @@ void TransmissionCallback (Ptr<Packet const> packet, uint32_t systemId)
 {
   NS_LOG_DEBUG ("Transmitted a packet from device " << systemId);
   // Create a packetStatus
-  PacketStatus status;
+  std::PacketStatus status;
   status.packet = packet;
   status.senderId = systemId;
   status.outcomeNumber = 0;
-  status.outcomes = std::vector<enum PacketOutcome> (nGateways, UNSET);
+  status.outcomes = std::vector<std::PacketOutcome> ( UNSET);
 
-  packetTracker.insert (std::pair<Ptr<Packet const>, PacketStatus> (packet, status));
+  packetTracker.insert (std::pair<Ptr<Packet const>, std::PacketStatus> (packet, status));
   cont=cont+1;
 }
 void PacketReceptionCallback (Ptr<Packet const> packet, uint32_t systemId)
 { NS_LOG_INFO("A packet was successfully received at gateway "<< systemId);
-  std::map<Ptr<Packet const>, PacketStatus>::iterator it = packetTracker.find (packet);
-  (*it).second.outcomes.at (systemId - nDevices) = RECEIVED;
+  std::map<Ptr<Packet const>, std::PacketStatus>::iterator it = packetTracker.find (packet);
+  (*it).second.outcomes.at (systemId - nDevices) = std::RECEIVED;
   (*it).second.outcomeNumber += 1;
   CheckReceptionByAllGWsComplete (it);
 }
@@ -242,8 +249,8 @@ void InterferenceCallback (Ptr<Packet const> packet, uint32_t systemId)
 {
 	 NS_LOG_INFO ("A packet was interferenced at gateway " << systemId);
 
-	std::map<Ptr<Packet const>, PacketStatus>::iterator it = packetTracker.find (packet);
-	it->second.outcomes.at (systemId - nDevices) = INTERFERED;
+	std::map<Ptr<Packet const>, std::PacketStatus>::iterator it = packetTracker.find (packet);
+	it->second.outcomes.at (systemId - nDevices) = std::INTERFERED;
 	it->second.outcomeNumber += 1;
 }
  //
