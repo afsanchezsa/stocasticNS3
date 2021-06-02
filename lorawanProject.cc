@@ -253,6 +253,26 @@ void InterferenceCallback (Ptr<Packet const> packet, uint32_t systemId)
 	it->second.outcomes.at (systemId - nDevices) = std::INTERFERED;
 	it->second.outcomeNumber += 1;
 }
+void NoMoreReceiversCallback (Ptr<Packet const> packet, uint32_t systemId)
+{
+  // NS_LOG_INFO ("A packet was lost because there were no more receivers at gateway " << systemId);
+
+  std::map<Ptr<Packet const>, std::PacketStatus>::iterator it = packetTracker.find (packet);
+  (*it).second.outcomes.at (systemId - nDevices) = std::NO_MORE_RECEIVERS;
+  (*it).second.outcomeNumber += 1;
+
+  CheckReceptionByAllGWsComplete (it);
+}
+void UnderSensitivityCallback (Ptr<Packet const> packet, uint32_t systemId)
+{
+  // NS_LOG_INFO ("A packet arrived at the gateway under sensitivity at gateway " << systemId);
+
+  std::map<Ptr<Packet const>, std::PacketStatus>::iterator it = packetTracker.find (packet);
+  (*it).second.outcomes.at (systemId - nDevices) = std::UNDER_SENSITIVITY;
+  (*it).second.outcomeNumber += 1;
+
+  CheckReceptionByAllGWsComplete (it);
+}
  //
  // This function will be used below as a trace sink, if the command-line
  // argument or default value "useCourseChangeCallback" is set to true
@@ -405,7 +425,7 @@ main (int argc, char *argv[])
       Ptr<Node> node = *j;
       Ptr<LoraNetDevice> loraNetDevice = node->GetDevice (0)->GetObject<LoraNetDevice> ();
       Ptr<LoraPhy> phy = loraNetDevice->GetPhy ();
-
+      phy->TraceConnectWithoutContext("StartSending",MakeCallback(&TransmissionCallback));
 
       ///////////////////////
       //ConfigureTracing(node,1,250);
@@ -443,7 +463,14 @@ for (NodeContainer::Iterator j=gateways.Begin();j!=gateways.End();j++)
       NS_ASSERT(gLoraNetDevice!=0);
       Ptr<GatewayLoraPhy>gwPhy=gLoraNetDevice->GetPhy()->GetObject<GatewayLoraPhy>();
       //gwPhy->TraceConnectWithoutContext("ReceivedPacket",MakeCallback())
-
+gwPhy->TraceConnectWithoutContext ("ReceivedPacket",
+									   MakeCallback (&PacketReceptionCallback));
+	gwPhy->TraceConnectWithoutContext ("LostPacketBecauseInterference",
+									   MakeCallback (&InterferenceCallback));
+	gwPhy->TraceConnectWithoutContext ("LostPacketBecauseNoMoreReceivers",
+									   MakeCallback (&NoMoreReceiversCallback));
+	gwPhy->TraceConnectWithoutContext ("LostPacketBecauseUnderSensitivity",
+									   MakeCallback (&UnderSensitivityCallback));
     }
 
 
