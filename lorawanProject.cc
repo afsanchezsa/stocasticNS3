@@ -184,13 +184,15 @@ void CheckReceptionByAllGWsComplete (std::map<Ptr<Packet const>, std::PacketStat
     {
       // Update the statistics
       std::PacketStatus status = (*it).second;
-      for (int j = 0; j < nGateways; j++)
+      bool go=true;
+      for (int j = 0; j < nGateways&&go; j++)
         {
-          switch (status.outcomes.at (j))//por si acaso castear a entero lo del switch
+          switch ((int)status.outcomes.at (j))//por si acaso castear a entero lo del switch
             {
             case std::RECEIVED:
               {
                 received += 1;
+                go=false;
                 break;
               }
               case std::INTERFERED:
@@ -626,5 +628,8 @@ double envStepTime = 0.3;
 /*printIntVector(tracker.CountPhyPacketsPerGw(Seconds (0), appStopTime ,0));
 printIntVector(tracker.CountPhyPacketsPerGw(Seconds (0), appStopTime ,1));
 printIntVector(tracker.CountPhyPacketsPerGw(Seconds (0), appStopTime ,2));*/
+//double packetLost=cont-double(received);
+std::cout<<"paquetes enviados: "<<cont<<std::endl;
+std::cout<<"paquetes recibidos: "<<received<<std::endl;
   return 0;
 }
