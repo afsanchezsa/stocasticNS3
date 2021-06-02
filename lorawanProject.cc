@@ -128,14 +128,8 @@ std::vector<std::string> split(const std::string& str, const std::string& delim)
     while (pos < str.length() && prev < str.length());
     return tokens;
 }
- //
- // This function will be used below as a trace sink, if the command-line
- // argument or default value "useCourseChangeCallback" is set to true
- //
 
 
-
-//NS_LOG_COMPONENT_DEFINE ("ComplexLorawanNetworkExample");
 
 // Network settings
 int nDevices = 20;
@@ -150,6 +144,117 @@ int appPeriodSeconds = 1;
 
 // Output control
 bool print = true;
+
+
+
+
+
+
+/************************/
+int cont=0;
+
+
+namespace std
+{
+  enum PacketOutcome{
+RECEIVED,
+INTERFERED,
+NO_MORE_RECEIVERS,
+UNDER_SENSITIVITY,
+UNSET
+};
+  struct PacketStatus
+{
+Ptr<Packet const > packet;
+uint32_t senderId;
+int outcomeNumber;
+std::vector<enum PacketOutcome> outcomes;
+};
+
+};
+
+std::map< Ptr<Packet const>,std::PacketStatus> packetTracker;
+
+void CheckReceptionByAllGWsComplete (std::map<Ptr<Packet const>, std::PacketStatus>::iterator it)
+{
+  // Check whether this packet is received by all gateways
+  if ((*it).second.outcomeNumber == nGateways)
+    {
+      // Update the statistics
+      std::PacketStatus status = (*it).second;
+      for (int j = 0; j < nGateways; j++)
+        {
+          switch (status.outcomes.at (j))
+            {
+            case RECEIVED:
+              {
+                received += 1;
+                break;
+              }
+            /*case UNDER_SENSITIVITY:
+              {
+                underSensitivity += 1;
+                break;
+              }*/
+            case NO_MORE_RECEIVERS:
+              {
+                noMoreReceivers += 1;
+                break;
+              }
+            case INTERFERED:
+              {
+                interfered += 1;
+                break;
+              }
+            case UNSET:
+              {
+                break;
+              }
+            }
+        }
+      // Remove the packet from the tracker
+      packetTracker.erase (it);
+    }
+}
+
+void TransmissionCallback (Ptr<Packet const> packet, uint32_t systemId)
+{
+  NS_LOG_DEBUG ("Transmitted a packet from device " << systemId);
+  // Create a packetStatus
+  PacketStatus status;
+  status.packet = packet;
+  status.senderId = systemId;
+  status.outcomeNumber = 0;
+  status.outcomes = std::vector<enum PacketOutcome> (nGateways, UNSET);
+
+  packetTracker.insert (std::pair<Ptr<Packet const>, PacketStatus> (packet, status));
+  cont=cont+1;
+}
+void PacketReceptionCallback (Ptr<Packet const> packet, uint32_t systemId)
+{ NS_LOG_INFO("A packet was successfully received at gateway "<< systemId);
+  std::map<Ptr<Packet const>, PacketStatus>::iterator it = packetTracker.find (packet);
+  (*it).second.outcomes.at (systemId - nDevices) = RECEIVED;
+  (*it).second.outcomeNumber += 1;
+  CheckReceptionByAllGWsComplete (it);
+}
+
+void InterferenceCallback (Ptr<Packet const> packet, uint32_t systemId)
+{
+	 NS_LOG_INFO ("A packet was interferenced at gateway " << systemId);
+
+	std::map<Ptr<Packet const>, PacketStatus>::iterator it = packetTracker.find (packet);
+	it->second.outcomes.at (systemId - nDevices) = INTERFERED;
+	it->second.outcomeNumber += 1;
+}
+ //
+ // This function will be used below as a trace sink, if the command-line
+ // argument or default value "useCourseChangeCallback" is set to true
+ //
+
+
+
+//NS_LOG_COMPONENT_DEFINE ("ComplexLorawanNetworkExample");
+
 
 int
 main (int argc, char *argv[])
@@ -321,6 +426,22 @@ ConfigureTracing(firstNode);*/
   macHelper.SetDeviceType (LorawanMacHelper::GW);
   helper.Install (phyHelper, macHelper, gateways);
 
+
+for (NodeContainer::Iterator j=gateways.Begin();j!=gateways.End();j++)
+
+{
+      Ptr<Node> gNode=*j;
+      Ptr<NetDevice> gNetDevice=gNode->GetDevice(0);
+      Ptr<LoraNetDevice>gLoraNetDevice=gNetDevice->GetObject<LoraNetDevice>();
+      NS_ASSERT(gLoraNetDevice!=0);
+      Ptr<GatewayLoraPhy>gwPhy=gLoraNetDevice->GetPhy()->GetObject<GatewayLoraPhy>();
+      //gwPhy->TraceConnectWithoutContext("ReceivedPacket",MakeCallback())
+
+    }
+
+
+
+
   /**********************
    *  Handle buildings  *
    **********************/
@@ -458,7 +579,7 @@ double envStepTime = 0.3;
   ///////////////////////////
   NS_LOG_INFO ("Computing performance metrics...");
 
-  LoraPacketTracker &tracker = helper.GetPacketTracker ();
+  /*LoraPacketTracker &tracker = helper.GetPacketTracker ();
   std::string metricsStr=tracker.CountMacPacketsGlobally (Seconds (0), appStopTime ) ;
   std::vector<std::string>metrics=split(metricsStr," ");
   std::string sentPacketsStr=metrics.at(0);
@@ -466,7 +587,7 @@ double envStepTime = 0.3;
   double sentPackets=std::stod(sentPacketsStr);
   double receivedPackets=std::stod(receivedPacketsStr);
   std::cout<<sentPackets<<" "<<receivedPackets<<std::endl;
-  std::cout << tracker.CountMacPacketsGlobally (Seconds (0), appStopTime ) << std::endl;
+  std::cout << tracker.CountMacPacketsGlobally (Seconds (0), appStopTime ) << std::endl;*/
 //std::cout<<tracker.CountPhyPacketsPerGw(Seconds (0), appStopTime ,0)<<std::endl;
 /*printIntVector(tracker.CountPhyPacketsPerGw(Seconds (0), appStopTime ,0));
 printIntVector(tracker.CountPhyPacketsPerGw(Seconds (0), appStopTime ,1));
