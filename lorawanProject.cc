@@ -15,10 +15,6 @@
 #include "ns3/traffic-control-module.h"
 #include "ns3/node-list.h"
 
-
-
-
-
 #include "ns3/end-device-lora-phy.h"
 #include "ns3/gateway-lora-phy.h"
 #include "ns3/class-a-end-device-lorawan-mac.h"
@@ -47,21 +43,23 @@
 using namespace ns3;
 using namespace lorawan;
 //
- // Define logging keyword for this file
- //
-NS_LOG_COMPONENT_DEFINE ("ComplexLorawanNetworkExample");
- /*
+// Define logging keyword for this file
+//
+NS_LOG_COMPONENT_DEFINE("ComplexLorawanNetworkExample");
+/*
 Define observation space
 */
 Ptr<OpenGymSpace> MyGetObservationSpace(void)
 {
-  uint32_t nodeNum = NodeList::GetNNodes ();
+  uint32_t nodeNum = NodeList::GetNNodes();
   float low = 0.0;
   float high = 100.0;
-  std::vector<uint32_t> shape = {nodeNum,};
-  std::string dtype = TypeNameGet<uint32_t> ();
-  Ptr<OpenGymBoxSpace> space = CreateObject<OpenGymBoxSpace> (low, high, shape, dtype);
-  NS_LOG_UNCOND ("MyGetObservationSpace: " << space);
+  std::vector<uint32_t> shape = {
+      nodeNum,
+  };
+  std::string dtype = TypeNameGet<uint32_t>();
+  Ptr<OpenGymBoxSpace> space = CreateObject<OpenGymBoxSpace>(low, high, shape, dtype);
+  NS_LOG_UNCOND("MyGetObservationSpace: " << space);
   return space;
 }
 
@@ -70,13 +68,15 @@ Define action space
 */
 Ptr<OpenGymSpace> MyGetActionSpace(void)
 {
-  uint32_t nodeNum = NodeList::GetNNodes ();
+  uint32_t nodeNum = NodeList::GetNNodes();
   float low = 0.0;
   float high = 100.0;
-  std::vector<uint32_t> shape = {nodeNum,};
-  std::string dtype = TypeNameGet<uint32_t> ();
-  Ptr<OpenGymBoxSpace> space = CreateObject<OpenGymBoxSpace> (low, high, shape, dtype);
-  NS_LOG_UNCOND ("MyGetActionSpace: " << space);
+  std::vector<uint32_t> shape = {
+      nodeNum,
+  };
+  std::string dtype = TypeNameGet<uint32_t>();
+  Ptr<OpenGymBoxSpace> space = CreateObject<OpenGymBoxSpace>(low, high, shape, dtype);
+  NS_LOG_UNCOND("MyGetActionSpace: " << space);
   return space;
 }
 
@@ -86,55 +86,54 @@ Define game over condition
 bool MyGetGameOver(void)
 {
   bool isGameOver = false;
-  NS_LOG_UNCOND ("MyGetGameOver: " << isGameOver);
+  NS_LOG_UNCOND("MyGetGameOver: " << isGameOver);
   return isGameOver;
 }
-void Tracer(Ptr< const Packet > packet)
-{  NS_LOG_UNCOND ("Se perdio" );
-  }
-void ConfigureTracing(Ptr<Node> node,u_int8_t windowValue,u_int8_t dataRate)
-{//// end-device-lorawan-mac.h setDatarate
-/// y las window en class-a-end-device-lorawan-mac.h 
-  Ptr<NetDevice> dev = node->GetDevice (0);
-  Ptr<LoraNetDevice> lora_dev = DynamicCast<LoraNetDevice> (dev);
-  Ptr<LorawanMac> lora_mac = lora_dev->GetMac ();
-  Ptr<ClassAEndDeviceLorawanMac>endDeviceMac=DynamicCast<ClassAEndDeviceLorawanMac>(lora_mac);
-  
+void Tracer(Ptr<const Packet> packet)
+{
+  NS_LOG_UNCOND("Se perdio");
+}
+void ConfigureTracing(Ptr<Node> node, u_int8_t windowValue, u_int8_t dataRate)
+{ //// end-device-lorawan-mac.h setDatarate
+  /// y las window en class-a-end-device-lorawan-mac.h
+  Ptr<NetDevice> dev = node->GetDevice(0);
+  Ptr<LoraNetDevice> lora_dev = DynamicCast<LoraNetDevice>(dev);
+  Ptr<LorawanMac> lora_mac = lora_dev->GetMac();
+  Ptr<ClassAEndDeviceLorawanMac> endDeviceMac = DynamicCast<ClassAEndDeviceLorawanMac>(lora_mac);
+
   //lora_mac->TraceConnectWithoutContext ("CannotSendBecauseDutyCycle", MakeCallback(&Tracer));
   endDeviceMac->SetSecondReceiveWindowDataRate(windowValue);
   endDeviceMac->SetDataRate(dataRate);
-  
-  
 }
 void printIntVector(std::vector<int> const &input)
 {
-    for (std::vector<int>::size_type i = 0; i < input.size(); i++) {
-        std::cout << input.at(i) << ' ';
-    }
-    std::cout<<std::endl;
+  for (std::vector<int>::size_type i = 0; i < input.size(); i++)
+  {
+    std::cout << input.at(i) << ' ';
+  }
+  std::cout << std::endl;
 }
-std::vector<std::string> split(const std::string& str, const std::string& delim)
+std::vector<std::string> split(const std::string &str, const std::string &delim)
 {
-    std::vector<std::string> tokens;
-    size_t prev = 0, pos = 0;
-    do
-    {
-        pos = str.find(delim, prev);
-        if (pos == std::string::npos) pos = str.length();
-        std::string token = str.substr(prev, pos-prev);
-        if (!token.empty()) tokens.push_back(token);
-        prev = pos + delim.length();
-    }
-    while (pos < str.length() && prev < str.length());
-    return tokens;
+  std::vector<std::string> tokens;
+  size_t prev = 0, pos = 0;
+  do
+  {
+    pos = str.find(delim, prev);
+    if (pos == std::string::npos)
+      pos = str.length();
+    std::string token = str.substr(prev, pos - prev);
+    if (!token.empty())
+      tokens.push_back(token);
+    prev = pos + delim.length();
+  } while (pos < str.length() && prev < str.length());
+  return tokens;
 }
-
-
 
 // Network settings
-int nDevices = 20;
-int nGateways = 3;
-double radius = 64; //Note that due to model updates, 7500 m is no longer the maximum distance 
+int nDevices = 17;
+int nGateways = 1;
+double radius = 64; //Note that due to model updates, 7500 m is no longer the maximum distance
 double simulationTime = 600;
 
 // Channel model
@@ -145,162 +144,159 @@ int appPeriodSeconds = 1;
 // Output control
 bool print = true;
 
-
-
-
-
-
 /************************/
-int cont=0;
-int received=0;
-int noMoreReceivers=0;
-int interfered=0;
-int underSensitivity=0;
+int cont = 0;
+int received = 0;
+int noMoreReceivers = 0;
+int interfered = 0;
+int underSensitivity = 0;
 namespace std
 {
-  enum PacketOutcome{
-RECEIVED,
-INTERFERED,
-NO_MORE_RECEIVERS,
-UNDER_SENSITIVITY,
-UNSET
-};
+  enum PacketOutcome
+  {
+    RECEIVED,
+    INTERFERED,
+    NO_MORE_RECEIVERS,
+    UNDER_SENSITIVITY,
+    UNSET
+  };
   struct PacketStatus
-{
-Ptr<Packet const > packet;
-uint32_t senderId;
-int outcomeNumber;
-std::vector<enum PacketOutcome> outcomes;
-};
+  {
+    Ptr<Packet const> packet;
+    uint32_t senderId;
+    int outcomeNumber;
+    std::vector<enum PacketOutcome> outcomes;
+  };
 
 };
 
-std::map< Ptr<Packet const>,std::PacketStatus> packetTracker;
+std::map<Ptr<Packet const>, std::PacketStatus> packetTracker;
 
-void CheckReceptionByAllGWsComplete (std::map<Ptr<Packet const>, std::PacketStatus>::iterator it)
+void CheckReceptionByAllGWsComplete(std::map<Ptr<Packet const>, std::PacketStatus>::iterator it)
 {
   // Check whether this packet is received by all gateways
   if ((*it).second.outcomeNumber == nGateways)
+  {
+    // Update the statistics
+    std::PacketStatus status = (*it).second;
+    bool go = true;
+    for (int j = 0; j < nGateways; j++)
     {
-      // Update the statistics
-      std::PacketStatus status = (*it).second;
-      bool go=true;
-      for (int j = 0; j < nGateways&&go; j++)
+      switch ((int)status.outcomes.at(j)) //por si acaso castear a entero lo del switch
+      {
+      case std::RECEIVED:
+      {
+        if (go)
         {
-          switch ((int)status.outcomes.at (j))//por si acaso castear a entero lo del switch
-            {
-            case std::RECEIVED:
-              {
-                received += 1;
-                go=false;
-                break;
-              }
-              case std::INTERFERED:
-              {
-                interfered += 1;
-                break;
-              }
-              case std::NO_MORE_RECEIVERS:
-              {
-                noMoreReceivers += 1;
-                break;
-              }
-            case std::UNDER_SENSITIVITY:
-              {
-                underSensitivity += 1;
-                break;
-              }
-                       
-            case std::UNSET:
-              {
-                break;
-              }
-              default:{
-                break;
-              }
-
-            }
+          received += 1;
+          go = false;
         }
-      // Remove the packet from the tracker
-      packetTracker.erase (it);
+
+        break;
+      }
+      case std::INTERFERED:
+      {
+        interfered += 1;
+        break;
+      }
+      case std::NO_MORE_RECEIVERS:
+      {
+        noMoreReceivers += 1;
+        break;
+      }
+      case std::UNDER_SENSITIVITY:
+      {
+        underSensitivity += 1;
+        break;
+      }
+
+      case std::UNSET:
+      {
+        break;
+      }
+      default:
+      {
+        break;
+      }
+      }
     }
+    // Remove the packet from the tracker
+    packetTracker.erase(it);
+  }
 }
 
-void TransmissionCallback (Ptr<Packet const> packet, uint32_t systemId)
+void TransmissionCallback(Ptr<Packet const> packet, uint32_t systemId)
 {
-  NS_LOG_DEBUG ("Transmitted a packet from device " << systemId);
+  NS_LOG_DEBUG("Transmitted a packet from device " << systemId);
   // Create a packetStatus
   std::PacketStatus status;
   status.packet = packet;
   status.senderId = systemId;
   status.outcomeNumber = 0;
-  status.outcomes = std::vector<std::PacketOutcome> ( UNSET);
+  status.outcomes = std::vector<std::PacketOutcome>(UNSET);
 
-  packetTracker.insert (std::pair<Ptr<Packet const>, std::PacketStatus> (packet, status));
-  cont=cont+1;
+  packetTracker.insert(std::pair<Ptr<Packet const>, std::PacketStatus>(packet, status));
+  cont = cont + 1;
 }
-void PacketReceptionCallback (Ptr<Packet const> packet, uint32_t systemId)
-{ NS_LOG_INFO("A packet was successfully received at gateway "<< systemId);
-  std::map<Ptr<Packet const>, std::PacketStatus>::iterator it = packetTracker.find (packet);
-  (*it).second.outcomes.at (systemId - nDevices) = std::RECEIVED;
-  (*it).second.outcomeNumber += 1;
-  CheckReceptionByAllGWsComplete (it);
-}
-
-void InterferenceCallback (Ptr<Packet const> packet, uint32_t systemId)
+void PacketReceptionCallback(Ptr<Packet const> packet, uint32_t systemId)
 {
-	 NS_LOG_INFO ("A packet was interferenced at gateway " << systemId);
-
-	std::map<Ptr<Packet const>, std::PacketStatus>::iterator it = packetTracker.find (packet);
-	it->second.outcomes.at (systemId - nDevices) = std::INTERFERED;
-	it->second.outcomeNumber += 1;
+  NS_LOG_INFO("A packet was successfully received at gateway " << systemId);
+  std::map<Ptr<Packet const>, std::PacketStatus>::iterator it = packetTracker.find(packet);
+  (*it).second.outcomes.at(systemId - nDevices) = std::RECEIVED;
+  (*it).second.outcomeNumber += 1;
+  CheckReceptionByAllGWsComplete(it);
 }
-void NoMoreReceiversCallback (Ptr<Packet const> packet, uint32_t systemId)
+
+void InterferenceCallback(Ptr<Packet const> packet, uint32_t systemId)
+{
+  NS_LOG_INFO("A packet was interferenced at gateway " << systemId);
+
+  std::map<Ptr<Packet const>, std::PacketStatus>::iterator it = packetTracker.find(packet);
+  it->second.outcomes.at(systemId - nDevices) = std::INTERFERED;
+  it->second.outcomeNumber += 1;
+}
+void NoMoreReceiversCallback(Ptr<Packet const> packet, uint32_t systemId)
 {
   // NS_LOG_INFO ("A packet was lost because there were no more receivers at gateway " << systemId);
 
-  std::map<Ptr<Packet const>, std::PacketStatus>::iterator it = packetTracker.find (packet);
-  (*it).second.outcomes.at (systemId - nDevices) = std::NO_MORE_RECEIVERS;
+  std::map<Ptr<Packet const>, std::PacketStatus>::iterator it = packetTracker.find(packet);
+  (*it).second.outcomes.at(systemId - nDevices) = std::NO_MORE_RECEIVERS;
   (*it).second.outcomeNumber += 1;
 
-  CheckReceptionByAllGWsComplete (it);
+  CheckReceptionByAllGWsComplete(it);
 }
-void UnderSensitivityCallback (Ptr<Packet const> packet, uint32_t systemId)
+void UnderSensitivityCallback(Ptr<Packet const> packet, uint32_t systemId)
 {
   // NS_LOG_INFO ("A packet arrived at the gateway under sensitivity at gateway " << systemId);
 
-  std::map<Ptr<Packet const>, std::PacketStatus>::iterator it = packetTracker.find (packet);
-  (*it).second.outcomes.at (systemId - nDevices) = std::UNDER_SENSITIVITY;
+  std::map<Ptr<Packet const>, std::PacketStatus>::iterator it = packetTracker.find(packet);
+  (*it).second.outcomes.at(systemId - nDevices) = std::UNDER_SENSITIVITY;
   (*it).second.outcomeNumber += 1;
 
-  CheckReceptionByAllGWsComplete (it);
+  CheckReceptionByAllGWsComplete(it);
 }
- //
- // This function will be used below as a trace sink, if the command-line
- // argument or default value "useCourseChangeCallback" is set to true
- //
-
-
+//
+// This function will be used below as a trace sink, if the command-line
+// argument or default value "useCourseChangeCallback" is set to true
+//
 
 //NS_LOG_COMPONENT_DEFINE ("ComplexLorawanNetworkExample");
 
-
-int
-main (int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 
   CommandLine cmd;
-  cmd.AddValue ("nDevices", "Number of end devices to include in the simulation", nDevices);
-  cmd.AddValue ("radius", "The radius of the area to simulate", radius);
-  cmd.AddValue ("simulationTime", "The time for which to simulate", simulationTime);
-  cmd.AddValue ("appPeriod",
-                "The period in seconds to be used by periodically transmitting applications",
-                appPeriodSeconds);
-  cmd.AddValue ("print", "Whether or not to print various informations", print);
-  cmd.Parse (argc, argv);
+  cmd.AddValue("nDevices", "Number of end devices to include in the simulation", nDevices);
+  cmd.AddValue("radius", "The radius of the area to simulate", radius);
+  cmd.AddValue("simulationTime", "The time for which to simulate", simulationTime);
+  cmd.AddValue("appPeriod",
+               "The period in seconds to be used by periodically transmitting applications",
+               appPeriodSeconds);
+  cmd.AddValue("print", "Whether or not to print various informations", print);
+  cmd.Parse(argc, argv);
 
   // Set up logging
-  LogComponentEnable ("ComplexLorawanNetworkExample", LOG_LEVEL_ALL);
+  LogComponentEnable("ComplexLorawanNetworkExample", LOG_LEVEL_ALL);
   // LogComponentEnable("LoraChannel", LOG_LEVEL_INFO);
   // LogComponentEnable("LoraPhy", LOG_LEVEL_ALL);
   // LogComponentEnable("EndDeviceLoraPhy", LOG_LEVEL_ALL);
@@ -329,63 +325,63 @@ main (int argc, char *argv[])
    ***********/
 
   // Create the time value from the period
-  Time appPeriod = Seconds (appPeriodSeconds);
+  Time appPeriod = Seconds(appPeriodSeconds);
 
   // Mobility
   MobilityHelper mobility;
-  mobility.SetPositionAllocator ("ns3::UniformDiscPositionAllocator", "rho", DoubleValue (radius),
-                                 "X", DoubleValue (0.0), "Y", DoubleValue (0.0));
-  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  mobility.SetPositionAllocator("ns3::UniformDiscPositionAllocator", "rho", DoubleValue(radius),
+                                "X", DoubleValue(0.0), "Y", DoubleValue(0.0));
+  mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
 
   /************************
    *  Create the channel  *
    ************************/
 
   // Create the lora channel object
-  Ptr<LogDistancePropagationLossModel> loss = CreateObject<LogDistancePropagationLossModel> ();
-  loss->SetPathLossExponent (3.76);
-  loss->SetReference (1, 7.7);
+  Ptr<LogDistancePropagationLossModel> loss = CreateObject<LogDistancePropagationLossModel>();
+  loss->SetPathLossExponent(3.76);
+  loss->SetReference(1, 7.7);
 
   if (realisticChannelModel)
-    {
-      // Create the correlated shadowing component
-      Ptr<CorrelatedShadowingPropagationLossModel> shadowing =
-          CreateObject<CorrelatedShadowingPropagationLossModel> ();
+  {
+    // Create the correlated shadowing component
+    Ptr<CorrelatedShadowingPropagationLossModel> shadowing =
+        CreateObject<CorrelatedShadowingPropagationLossModel>();
 
-      // Aggregate shadowing to the logdistance loss
-      loss->SetNext (shadowing);
+    // Aggregate shadowing to the logdistance loss
+    loss->SetNext(shadowing);
 
-      // Add the effect to the channel propagation loss
-      Ptr<BuildingPenetrationLoss> buildingLoss = CreateObject<BuildingPenetrationLoss> ();
+    // Add the effect to the channel propagation loss
+    Ptr<BuildingPenetrationLoss> buildingLoss = CreateObject<BuildingPenetrationLoss>();
 
-      shadowing->SetNext (buildingLoss);
-    }
+    shadowing->SetNext(buildingLoss);
+  }
 
-  Ptr<PropagationDelayModel> delay = CreateObject<ConstantSpeedPropagationDelayModel> ();
+  Ptr<PropagationDelayModel> delay = CreateObject<ConstantSpeedPropagationDelayModel>();
 
-  Ptr<LoraChannel> channel = CreateObject<LoraChannel> (loss, delay);
+  Ptr<LoraChannel> channel = CreateObject<LoraChannel>(loss, delay);
 
   /************************
    *  Create the helpers  *
    ************************/
 
   // Create the LoraPhyHelper
-  LoraPhyHelper phyHelper = LoraPhyHelper ();
-  phyHelper.SetChannel (channel);
+  LoraPhyHelper phyHelper = LoraPhyHelper();
+  phyHelper.SetChannel(channel);
 
   // Create the LorawanMacHelper
-  LorawanMacHelper macHelper = LorawanMacHelper ();
+  LorawanMacHelper macHelper = LorawanMacHelper();
 
   // Create the LoraHelper
-  LoraHelper helper = LoraHelper ();
-  helper.EnablePacketTracking (); // Output filename
+  LoraHelper helper = LoraHelper();
+  helper.EnablePacketTracking(); // Output filename
   // helper.EnableSimulationTimePrinting ();
 
   //Create the NetworkServerHelper
-  NetworkServerHelper nsHelper = NetworkServerHelper ();
+  NetworkServerHelper nsHelper = NetworkServerHelper();
 
   //Create the ForwarderHelper
-  ForwarderHelper forHelper = ForwarderHelper ();
+  ForwarderHelper forHelper = ForwarderHelper();
 
   /************************
    *  Create End Devices  *
@@ -393,47 +389,47 @@ main (int argc, char *argv[])
 
   // Create a set of nodes
   NodeContainer endDevices;
-  endDevices.Create (nDevices);
+  endDevices.Create(nDevices);
 
   // Assign a mobility model to each node
-  mobility.Install (endDevices);
+  mobility.Install(endDevices);
 
   // Make it so that nodes are at a certain height > 0
-  for (NodeContainer::Iterator j = endDevices.Begin (); j != endDevices.End (); ++j)
-    {
-      Ptr<MobilityModel> mobility = (*j)->GetObject<MobilityModel> ();
-      Vector position = mobility->GetPosition ();
-      position.z = 1.2;
-      mobility->SetPosition (position);
-    }
+  for (NodeContainer::Iterator j = endDevices.Begin(); j != endDevices.End(); ++j)
+  {
+    Ptr<MobilityModel> mobility = (*j)->GetObject<MobilityModel>();
+    Vector position = mobility->GetPosition();
+    position.z = 1.2;
+    mobility->SetPosition(position);
+  }
 
   // Create the LoraNetDevices of the end devices
   uint8_t nwkId = 54;
   uint32_t nwkAddr = 1864;
   Ptr<LoraDeviceAddressGenerator> addrGen =
-      CreateObject<LoraDeviceAddressGenerator> (nwkId, nwkAddr);
+      CreateObject<LoraDeviceAddressGenerator>(nwkId, nwkAddr);
 
   // Create the LoraNetDevices of the end devices
-  macHelper.SetAddressGenerator (addrGen);
-  phyHelper.SetDeviceType (LoraPhyHelper::ED);
-  macHelper.SetDeviceType (LorawanMacHelper::ED_A);
-  helper.Install (phyHelper, macHelper, endDevices);
+  macHelper.SetAddressGenerator(addrGen);
+  phyHelper.SetDeviceType(LoraPhyHelper::ED);
+  macHelper.SetDeviceType(LorawanMacHelper::ED_A);
+  helper.Install(phyHelper, macHelper, endDevices);
 
   // Now end devices are connected to the channel
 
   // Connect trace sources
-  for (NodeContainer::Iterator j = endDevices.Begin (); j != endDevices.End (); ++j)
-    {
-      Ptr<Node> node = *j;
-      Ptr<LoraNetDevice> loraNetDevice = node->GetDevice (0)->GetObject<LoraNetDevice> ();
-      Ptr<LoraPhy> phy = loraNetDevice->GetPhy ();
-      phy->TraceConnectWithoutContext("StartSending",MakeCallback(&TransmissionCallback));
+  for (NodeContainer::Iterator j = endDevices.Begin(); j != endDevices.End(); ++j)
+  {
+    Ptr<Node> node = *j;
+    Ptr<LoraNetDevice> loraNetDevice = node->GetDevice(0)->GetObject<LoraNetDevice>();
+    Ptr<LoraPhy> phy = loraNetDevice->GetPhy();
+    phy->TraceConnectWithoutContext("StartSending", MakeCallback(&TransmissionCallback));
 
-      ///////////////////////
-      //ConfigureTracing(node,1,250);
-    }
+    ///////////////////////
+    //ConfigureTracing(node,1,250);
+  }
 
-/*NodeContainer::Iterator j=endDevices.Begin();
+  /*NodeContainer::Iterator j=endDevices.Begin();
 Ptr<Node> firstNode=*j;
 ConfigureTracing(firstNode);*/
   /*********************
@@ -442,41 +438,37 @@ ConfigureTracing(firstNode);*/
 
   // Create the gateway nodes (allocate them uniformely on the disc)
   NodeContainer gateways;
-  gateways.Create (nGateways);
+  gateways.Create(nGateways);
 
-  Ptr<ListPositionAllocator> allocator = CreateObject<ListPositionAllocator> ();
+  Ptr<ListPositionAllocator> allocator = CreateObject<ListPositionAllocator>();
   // Make it so that nodes are at a certain height > 0
-  allocator->Add (Vector (0.0, 0.0, 15.0));
-  mobility.SetPositionAllocator (allocator);
-  mobility.Install (gateways);
+  allocator->Add(Vector(0.0, 0.0, 15.0));
+  mobility.SetPositionAllocator(allocator);
+  mobility.Install(gateways);
 
   // Create a netdevice for each gateway
-  phyHelper.SetDeviceType (LoraPhyHelper::GW);
-  macHelper.SetDeviceType (LorawanMacHelper::GW);
-  helper.Install (phyHelper, macHelper, gateways);
+  phyHelper.SetDeviceType(LoraPhyHelper::GW);
+  macHelper.SetDeviceType(LorawanMacHelper::GW);
+  helper.Install(phyHelper, macHelper, gateways);
 
+  for (NodeContainer::Iterator j = gateways.Begin(); j != gateways.End(); j++)
 
-for (NodeContainer::Iterator j=gateways.Begin();j!=gateways.End();j++)
-
-{
-      Ptr<Node> gNode=*j;
-      Ptr<NetDevice> gNetDevice=gNode->GetDevice(0);
-      Ptr<LoraNetDevice>gLoraNetDevice=gNetDevice->GetObject<LoraNetDevice>();
-      NS_ASSERT(gLoraNetDevice!=0);
-      Ptr<GatewayLoraPhy>gwPhy=gLoraNetDevice->GetPhy()->GetObject<GatewayLoraPhy>();
-      //gwPhy->TraceConnectWithoutContext("ReceivedPacket",MakeCallback())
-gwPhy->TraceConnectWithoutContext ("ReceivedPacket",
-									   MakeCallback (&PacketReceptionCallback));
-	gwPhy->TraceConnectWithoutContext ("LostPacketBecauseInterference",
-									   MakeCallback (&InterferenceCallback));
-	gwPhy->TraceConnectWithoutContext ("LostPacketBecauseNoMoreReceivers",
-									   MakeCallback (&NoMoreReceiversCallback));
-	gwPhy->TraceConnectWithoutContext ("LostPacketBecauseUnderSensitivity",
-									   MakeCallback (&UnderSensitivityCallback));
-    }
-
-
-
+  {
+    Ptr<Node> gNode = *j;
+    Ptr<NetDevice> gNetDevice = gNode->GetDevice(0);
+    Ptr<LoraNetDevice> gLoraNetDevice = gNetDevice->GetObject<LoraNetDevice>();
+    NS_ASSERT(gLoraNetDevice != 0);
+    Ptr<GatewayLoraPhy> gwPhy = gLoraNetDevice->GetPhy()->GetObject<GatewayLoraPhy>();
+    //gwPhy->TraceConnectWithoutContext("ReceivedPacket",MakeCallback())
+    gwPhy->TraceConnectWithoutContext("ReceivedPacket",
+                                      MakeCallback(&PacketReceptionCallback));
+    gwPhy->TraceConnectWithoutContext("LostPacketBecauseInterference",
+                                      MakeCallback(&InterferenceCallback));
+    gwPhy->TraceConnectWithoutContext("LostPacketBecauseNoMoreReceivers",
+                                      MakeCallback(&NoMoreReceiversCallback));
+    gwPhy->TraceConnectWithoutContext("LostPacketBecauseUnderSensitivity",
+                                      MakeCallback(&UnderSensitivityCallback));
+  }
 
   /**********************
    *  Handle buildings  *
@@ -489,74 +481,74 @@ gwPhy->TraceConnectWithoutContext ("ReceivedPacket",
   int gridWidth = 2 * radius / (xLength + deltaX);
   int gridHeight = 2 * radius / (yLength + deltaY);
   if (realisticChannelModel == false)
-    {
-      gridWidth = 0;
-      gridHeight = 0;
-    }
+  {
+    gridWidth = 0;
+    gridHeight = 0;
+  }
   Ptr<GridBuildingAllocator> gridBuildingAllocator;
-  gridBuildingAllocator = CreateObject<GridBuildingAllocator> ();
-  gridBuildingAllocator->SetAttribute ("GridWidth", UintegerValue (gridWidth));
-  gridBuildingAllocator->SetAttribute ("LengthX", DoubleValue (xLength));
-  gridBuildingAllocator->SetAttribute ("LengthY", DoubleValue (yLength));
-  gridBuildingAllocator->SetAttribute ("DeltaX", DoubleValue (deltaX));
-  gridBuildingAllocator->SetAttribute ("DeltaY", DoubleValue (deltaY));
-  gridBuildingAllocator->SetAttribute ("Height", DoubleValue (6));
-  gridBuildingAllocator->SetBuildingAttribute ("NRoomsX", UintegerValue (2));
-  gridBuildingAllocator->SetBuildingAttribute ("NRoomsY", UintegerValue (4));
-  gridBuildingAllocator->SetBuildingAttribute ("NFloors", UintegerValue (2));
-  gridBuildingAllocator->SetAttribute (
-      "MinX", DoubleValue (-gridWidth * (xLength + deltaX) / 2 + deltaX / 2));
-  gridBuildingAllocator->SetAttribute (
-      "MinY", DoubleValue (-gridHeight * (yLength + deltaY) / 2 + deltaY / 2));
-  BuildingContainer bContainer = gridBuildingAllocator->Create (gridWidth * gridHeight);
+  gridBuildingAllocator = CreateObject<GridBuildingAllocator>();
+  gridBuildingAllocator->SetAttribute("GridWidth", UintegerValue(gridWidth));
+  gridBuildingAllocator->SetAttribute("LengthX", DoubleValue(xLength));
+  gridBuildingAllocator->SetAttribute("LengthY", DoubleValue(yLength));
+  gridBuildingAllocator->SetAttribute("DeltaX", DoubleValue(deltaX));
+  gridBuildingAllocator->SetAttribute("DeltaY", DoubleValue(deltaY));
+  gridBuildingAllocator->SetAttribute("Height", DoubleValue(6));
+  gridBuildingAllocator->SetBuildingAttribute("NRoomsX", UintegerValue(2));
+  gridBuildingAllocator->SetBuildingAttribute("NRoomsY", UintegerValue(4));
+  gridBuildingAllocator->SetBuildingAttribute("NFloors", UintegerValue(2));
+  gridBuildingAllocator->SetAttribute(
+      "MinX", DoubleValue(-gridWidth * (xLength + deltaX) / 2 + deltaX / 2));
+  gridBuildingAllocator->SetAttribute(
+      "MinY", DoubleValue(-gridHeight * (yLength + deltaY) / 2 + deltaY / 2));
+  BuildingContainer bContainer = gridBuildingAllocator->Create(gridWidth * gridHeight);
 
-  BuildingsHelper::Install (endDevices);
-  BuildingsHelper::Install (gateways);
+  BuildingsHelper::Install(endDevices);
+  BuildingsHelper::Install(gateways);
 
   // Print the buildings
   if (print)
+  {
+    std::ofstream myfile;
+    myfile.open("buildings.txt");
+    std::vector<Ptr<Building>>::const_iterator it;
+    int j = 1;
+    for (it = bContainer.Begin(); it != bContainer.End(); ++it, ++j)
     {
-      std::ofstream myfile;
-      myfile.open ("buildings.txt");
-      std::vector<Ptr<Building>>::const_iterator it;
-      int j = 1;
-      for (it = bContainer.Begin (); it != bContainer.End (); ++it, ++j)
-        {
-          Box boundaries = (*it)->GetBoundaries ();
-          myfile << "set object " << j << " rect from " << boundaries.xMin << "," << boundaries.yMin
-                 << " to " << boundaries.xMax << "," << boundaries.yMax << std::endl;
-        }
-      myfile.close ();
+      Box boundaries = (*it)->GetBoundaries();
+      myfile << "set object " << j << " rect from " << boundaries.xMin << "," << boundaries.yMin
+             << " to " << boundaries.xMax << "," << boundaries.yMax << std::endl;
     }
+    myfile.close();
+  }
 
   /**********************************************
    *  Set up the end device's spreading factor  *
    **********************************************/
 
-  macHelper.SetSpreadingFactorsUp (endDevices, gateways, channel);
+  macHelper.SetSpreadingFactorsUp(endDevices, gateways, channel);
 
-  NS_LOG_DEBUG ("Completed configuration");
+  NS_LOG_DEBUG("Completed configuration");
 
   /*********************************************
    *  Install applications on the end devices  *
    *********************************************/
 
-  Time appStopTime = Seconds (simulationTime);
-  PeriodicSenderHelper appHelper = PeriodicSenderHelper ();
-  appHelper.SetPeriod (Seconds (appPeriodSeconds));
-  appHelper.SetPacketSize (23);
-  
-  Ptr<RandomVariableStream> rv = CreateObjectWithAttributes<UniformRandomVariable> (
-      "Min", DoubleValue (0), "Max", DoubleValue (10));
-  ApplicationContainer appContainer = appHelper.Install (endDevices);
-  Ptr<PeriodicSender> senderApp=DynamicCast<PeriodicSender> (appContainer.Get(0));
-  
-////////////*cambio de rendimiento*///////////////
-  senderApp->SetInterval(Seconds(100));///se necesita valores grandes para ver cambio
-  senderApp->SetPacketSize(10);// no se necesita valores grandes para ver cambio
+  Time appStopTime = Seconds(simulationTime);
+  PeriodicSenderHelper appHelper = PeriodicSenderHelper();
+  appHelper.SetPeriod(Seconds(appPeriodSeconds));
+  appHelper.SetPacketSize(23);
+
+  Ptr<RandomVariableStream> rv = CreateObjectWithAttributes<UniformRandomVariable>(
+      "Min", DoubleValue(0), "Max", DoubleValue(10));
+  ApplicationContainer appContainer = appHelper.Install(endDevices);
+  Ptr<PeriodicSender> senderApp = DynamicCast<PeriodicSender>(appContainer.Get(0));
+
+  ////////////*cambio de rendimiento*///////////////
+  senderApp->SetInterval(Seconds(100)); ///se necesita valores grandes para ver cambio
+  senderApp->SetPacketSize(10);         // no se necesita valores grandes para ver cambio
   //////////////////////////
-  appContainer.Start (Seconds (0));
-  appContainer.Stop (appStopTime);
+  appContainer.Start(Seconds(0));
+  appContainer.Stop(appStopTime);
 
   /**************************
    *  Create Network Server  *
@@ -564,20 +556,17 @@ gwPhy->TraceConnectWithoutContext ("ReceivedPacket",
 
   // Create the NS node
   NodeContainer networkServer;
-  networkServer.Create (1);
+  networkServer.Create(1);
 
   // Create a NS for the network
-  nsHelper.SetEndDevices (endDevices);
-  nsHelper.SetGateways (gateways);
-  nsHelper.Install (networkServer);
+  nsHelper.SetEndDevices(endDevices);
+  nsHelper.SetGateways(gateways);
+  nsHelper.Install(networkServer);
 
   //Create a forwarder for each gateway
-  forHelper.Install (gateways);
+  forHelper.Install(gateways);
 
-
-
-
-/*
+  /*
 // OpenGym Env
 uint16_t port = 5555;
 double envStepTime = 0.3; 
@@ -595,41 +584,48 @@ double envStepTime = 0.3;
 
 */
 
-
-
-
   ////////////////
   // Simulation //
   ////////////////
 
+  Simulator::Stop(appStopTime);
 
-  Simulator::Stop (appStopTime );
+  NS_LOG_INFO("Running simulation...");
+  Simulator::Run();
 
-  NS_LOG_INFO ("Running simulation...");
-  Simulator::Run ();
-  
-  Simulator::Destroy ();
+  Simulator::Destroy();
 
   ///////////////////////////
   // Print results to file //
   ///////////////////////////
-  NS_LOG_INFO ("Computing performance metrics...");
+  std::cout<<"\n/////////////////////////////\n"<<std::endl;
+  NS_LOG_INFO("Computing performance metrics...");
+std::cout<<"\n/////////////////////////////\n"<<std::endl;
+  double receivedProb = double(received) / cont;
+  double packetLost = cont - double(received);
+  double interferedProb=double(interfered)/nDevices;
+  double noMoreReceiversProb=double(noMoreReceivers)/nDevices;
+  double underSensitivityProb=double(underSensitivity)/nDevices;
+  
+  double receivedProbGivenAboveSensitivity=double(received)/(cont-underSensitivity);
+  double interferedProbGivenAboveSensitivity=double(interfered)/(nDevices-underSensitivity);
+  double noMoreReceiversProbGivenAboveSensitivity=double(noMoreReceivers)/(nDevices-underSensitivity);
+  std::cout<<"Numero de End Devices:"<<nDevices
+            <<"\nPaquetes Enviados:"<<cont
+            <<"\nPaquetes Perdidos:"<<packetLost
+            <<"\nProbabilidad de Recepcion satisfactoria:"<<receivedProb
+            <<"\nPaquetes Recibidos:"<<received
+            <<"\nThrougput:"<<double(received)*8*10/double(simulationTime)<<" bps"
+            <<"\nProbabilidad de Interferencia:"<<interferedProb
+            <<"\nProbabilidad de No Recepcion:"<<noMoreReceiversProb
+            <<"\nProbabilidad de Baja Sensibilidad:"<<underSensitivityProb
+            <<"\nProbabilidad de No Recepcion:"<<noMoreReceiversProb
+            <<"\nProbabilidad de Recepcion dada una alta Sensibilidad:"<<receivedProbGivenAboveSensitivity
+            <<"\nProbabilidad de Interferencia dada una alta Sensibilidad:"<<interferedProbGivenAboveSensitivity
+            <<"\nProbabilidad de No Recepcion dada una alta Sensibilidad:"<<noMoreReceiversProbGivenAboveSensitivity<<"\n\n";
+            
 
-  /*LoraPacketTracker &tracker = helper.GetPacketTracker ();
-  std::string metricsStr=tracker.CountMacPacketsGlobally (Seconds (0), appStopTime ) ;
-  std::vector<std::string>metrics=split(metricsStr," ");
-  std::string sentPacketsStr=metrics.at(0);
-  std::string receivedPacketsStr=metrics.at(1);
-  double sentPackets=std::stod(sentPacketsStr);
-  double receivedPackets=std::stod(receivedPacketsStr);
-  std::cout<<sentPackets<<" "<<receivedPackets<<std::endl;
-  std::cout << tracker.CountMacPacketsGlobally (Seconds (0), appStopTime ) << std::endl;*/
-//std::cout<<tracker.CountPhyPacketsPerGw(Seconds (0), appStopTime ,0)<<std::endl;
-/*printIntVector(tracker.CountPhyPacketsPerGw(Seconds (0), appStopTime ,0));
-printIntVector(tracker.CountPhyPacketsPerGw(Seconds (0), appStopTime ,1));
-printIntVector(tracker.CountPhyPacketsPerGw(Seconds (0), appStopTime ,2));*/
-//double packetLost=cont-double(received);
-std::cout<<"paquetes enviados: "<<cont<<std::endl;
-std::cout<<"paquetes recibidos: "<<received<<std::endl;
+          
+
   return 0;
 }
