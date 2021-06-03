@@ -58,7 +58,7 @@ Define observation space
 Ptr<OpenGymSpace> MyGetObservationSpace(void)
 {
   uint32_t nodeNum = 1;
-  float low = 0.0;
+  float low = 10.0;
   float high = 100.0;
   std::vector<uint32_t> shape = {
       nodeNum,
@@ -75,7 +75,7 @@ Define action space
 Ptr<OpenGymSpace> MyGetActionSpace(void)
 {
   uint32_t nodeNum = 1;
-  float low = 0.0;
+  float low = 10.0;
   float high = 100.0;
   std::vector<uint32_t> shape = {
       nodeNum,
@@ -98,8 +98,10 @@ bool MyGetGameOver(void)
 Ptr<OpenGymDataContainer> MyGetObservation(void)
 {
   uint32_t nodeNum = 1;
-  std::vector<uint32_t> shape = {nodeNum,};
-  Ptr<OpenGymBoxContainer<uint32_t> > box = CreateObject<OpenGymBoxContainer<uint32_t> >(shape);
+  std::vector<uint32_t> shape = {
+      nodeNum,
+  };
+  Ptr<OpenGymBoxContainer<uint32_t>> box = CreateObject<OpenGymBoxContainer<uint32_t>>(shape);
 
   /*for (NodeList::Iterator i = NodeList::Begin (); i != NodeList::End (); ++i) {
     Ptr<Node> node = *i;
@@ -107,10 +109,12 @@ Ptr<OpenGymDataContainer> MyGetObservation(void)
     uint32_t value = queue->GetNPackets();
     box->AddValue(value);
   }*/
-  
-  box->AddValue(received );
+  double a=double(received)/cont;
+  a*=30;
 
-  NS_LOG_UNCOND ("MyGetObservation: " << box);
+  box->AddValue(floor(a));
+
+  NS_LOG_UNCOND("MyGetObservation: " << box);
   return box;
 }
 
@@ -123,9 +127,9 @@ std::string MyGetExtraInfo(void)
 }
 bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
 {
-    NS_LOG_UNCOND ("MyExecuteActions: " << action);
+  NS_LOG_UNCOND("MyExecuteActions: " << action);
 
-  Ptr<OpenGymBoxContainer<uint32_t> > box = DynamicCast<OpenGymBoxContainer<uint32_t> >(action);
+  Ptr<OpenGymBoxContainer<uint32_t>> box = DynamicCast<OpenGymBoxContainer<uint32_t>>(action);
   std::vector<uint32_t> actionVector = box->GetData();
 
   /*uint32_t nodeNum = NodeList::GetNNodes ();
@@ -135,7 +139,7 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
     uint32_t cwSize = actionVector.at(i);
     SetCw(node, cwSize, cwSize);
   }*/
-  senderApp->SetPacketSize(actionVector.at(0)); 
+  senderApp->SetPacketSize(actionVector.at(0));
   return true;
 }
 
@@ -148,10 +152,9 @@ float MyGetReward(void)
 }
 void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGymInterface)
 {
-  Simulator::Schedule (Seconds(envStepTime), &ScheduleNextStateRead, envStepTime, openGymInterface);
+  Simulator::Schedule(Seconds(envStepTime), &ScheduleNextStateRead, envStepTime, openGymInterface);
   openGymInterface->NotifyCurrentState();
 }
-
 
 void Tracer(Ptr<const Packet> packet)
 {
@@ -601,11 +604,11 @@ ConfigureTracing(firstNode);*/
   Ptr<RandomVariableStream> rv = CreateObjectWithAttributes<UniformRandomVariable>(
       "Min", DoubleValue(0), "Max", DoubleValue(10));
   ApplicationContainer appContainer = appHelper.Install(endDevices);
-   senderApp = DynamicCast<PeriodicSender>(appContainer.Get(0));
+  senderApp = DynamicCast<PeriodicSender>(appContainer.Get(0));
 
   ////////////*cambio de rendimiento*///////////////
   //senderApp->SetInterval(Seconds(100)); ///se necesita valores grandes para ver cambio
-  senderApp->SetPacketSize(10);         // no se necesita valores grandes para ver cambio
+  senderApp->SetPacketSize(10); // no se necesita valores grandes para ver cambio
   //////////////////////////
   appContainer.Start(Seconds(0));
   appContainer.Stop(appStopTime);
@@ -626,23 +629,19 @@ ConfigureTracing(firstNode);*/
   //Create a forwarder for each gateway
   forHelper.Install(gateways);
 
-  
-// OpenGym Env
-uint16_t port = 5555;
-double envStepTime = 30; 
-  Ptr<OpenGymInterface> openGymInterface = CreateObject<OpenGymInterface> (port);
-  openGymInterface->SetGetActionSpaceCb( MakeCallback (&MyGetActionSpace) );
-  openGymInterface->SetGetObservationSpaceCb( MakeCallback (&MyGetObservationSpace) );
-  openGymInterface->SetGetGameOverCb( MakeCallback (&MyGetGameOver) );
-  openGymInterface->SetGetObservationCb( MakeCallback (&MyGetObservation) );
-  openGymInterface->SetGetRewardCb( MakeCallback (&MyGetReward) );
-  openGymInterface->SetGetExtraInfoCb( MakeCallback (&MyGetExtraInfo) );
-  openGymInterface->SetExecuteActionsCb( MakeCallback (&MyExecuteActions) );
+  // OpenGym Env
+  uint16_t port = 5555;
+  double envStepTime = 30;
+  Ptr<OpenGymInterface> openGymInterface = CreateObject<OpenGymInterface>(port);
+  openGymInterface->SetGetActionSpaceCb(MakeCallback(&MyGetActionSpace));
+  openGymInterface->SetGetObservationSpaceCb(MakeCallback(&MyGetObservationSpace));
+  openGymInterface->SetGetGameOverCb(MakeCallback(&MyGetGameOver));
+  openGymInterface->SetGetObservationCb(MakeCallback(&MyGetObservation));
+  openGymInterface->SetGetRewardCb(MakeCallback(&MyGetReward));
+  openGymInterface->SetGetExtraInfoCb(MakeCallback(&MyGetExtraInfo));
+  openGymInterface->SetExecuteActionsCb(MakeCallback(&MyExecuteActions));
 
-  Simulator::Schedule (Seconds(0.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
-
-
-
+  Simulator::Schedule(Seconds(0.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
 
   ////////////////
   // Simulation //
@@ -652,40 +651,39 @@ double envStepTime = 30;
 
   NS_LOG_INFO("Running simulation...");
   Simulator::Run();
-
+  openGymInterface->NotifySimulationEnd();
   Simulator::Destroy();
 
   ///////////////////////////
   // Print results to file //
   ///////////////////////////
-  std::cout<<"\n/////////////////////////////\n"<<std::endl;
+  std::cout << "\n/////////////////////////////\n"
+            << std::endl;
   NS_LOG_INFO("Computing performance metrics...");
-std::cout<<"\n/////////////////////////////\n"<<std::endl;
+  std::cout << "\n/////////////////////////////\n"
+            << std::endl;
   double receivedProb = double(received) / cont;
   double packetLost = cont - double(received);
-  double interferedProb=double(interfered)/nDevices;
-  double noMoreReceiversProb=double(noMoreReceivers)/nDevices;
-  double underSensitivityProb=double(underSensitivity)/nDevices;
-  
-  double receivedProbGivenAboveSensitivity=double(received)/(cont-underSensitivity);
-  double interferedProbGivenAboveSensitivity=double(interfered)/(nDevices-underSensitivity);
-  double noMoreReceiversProbGivenAboveSensitivity=double(noMoreReceivers)/(nDevices-underSensitivity);
-  std::cout<<"Numero de End Devices:"<<nDevices
-            <<"\nPaquetes Enviados:"<<cont
-            <<"\nPaquetes Perdidos:"<<packetLost
-            <<"\nProbabilidad de Recepcion satisfactoria:"<<receivedProb
-            <<"\nPaquetes Recibidos:"<<received
-            <<"\nThrougput:"<<double(received)*8*10/double(simulationTime)<<" bps"
-            <<"\nProbabilidad de Interferencia:"<<interferedProb
-            <<"\nProbabilidad de No Recepcion:"<<noMoreReceiversProb
-            <<"\nProbabilidad de Baja Sensibilidad:"<<underSensitivityProb
-            <<"\nProbabilidad de No Recepcion:"<<noMoreReceiversProb
-            <<"\nProbabilidad de Recepcion dada una alta Sensibilidad:"<<receivedProbGivenAboveSensitivity
-            <<"\nProbabilidad de Interferencia dada una alta Sensibilidad:"<<interferedProbGivenAboveSensitivity
-            <<"\nProbabilidad de No Recepcion dada una alta Sensibilidad:"<<noMoreReceiversProbGivenAboveSensitivity<<"\n\n";
-            
+  double interferedProb = double(interfered) / nDevices;
+  double noMoreReceiversProb = double(noMoreReceivers) / nDevices;
+  double underSensitivityProb = double(underSensitivity) / nDevices;
 
-          
+  double receivedProbGivenAboveSensitivity = double(received) / (cont - underSensitivity);
+  double interferedProbGivenAboveSensitivity = double(interfered) / (nDevices - underSensitivity);
+  double noMoreReceiversProbGivenAboveSensitivity = double(noMoreReceivers) / (nDevices - underSensitivity);
+  std::cout << "Numero de End Devices:" << nDevices
+            << "\nPaquetes Enviados:" << cont
+            << "\nPaquetes Perdidos:" << packetLost
+            << "\nProbabilidad de Recepcion satisfactoria:" << receivedProb
+            << "\nPaquetes Recibidos:" << received
+            << "\nThrougput:" << double(received) * 8 * 10 / double(simulationTime) << " bps"
+            << "\nProbabilidad de Interferencia:" << interferedProb
+            << "\nProbabilidad de No Recepcion:" << noMoreReceiversProb
+            << "\nProbabilidad de Baja Sensibilidad:" << underSensitivityProb
+            << "\nProbabilidad de No Recepcion:" << noMoreReceiversProb
+            << "\nProbabilidad de Recepcion dada una alta Sensibilidad:" << receivedProbGivenAboveSensitivity
+            << "\nProbabilidad de Interferencia dada una alta Sensibilidad:" << interferedProbGivenAboveSensitivity
+            << "\nProbabilidad de No Recepcion dada una alta Sensibilidad:" << noMoreReceiversProbGivenAboveSensitivity << "\n\n";
 
   return 0;
 }

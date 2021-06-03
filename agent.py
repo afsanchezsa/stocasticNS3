@@ -5,6 +5,7 @@ import argparse
 import time
 import numpy as np
 from ns3gym import ns3env
+import random
 
 __author__ = "Piotr Gawlowicz"
 __copyright__ = "Copyright (c) 2018, Technische Universität Berlin"
@@ -37,43 +38,56 @@ debug = False
 env = ns3env.Ns3Env(port=port, stepTime=stepTime, startSim=startSim, simSeed=seed, simArgs=simArgs, debug=debug)
 env.reset()
 
+
 ob_space = env.observation_space
 ac_space = env.action_space
 print("Observation space: ", ob_space,  ob_space.dtype)
 print("Action space: ", ac_space, ac_space.dtype)
+q_table = np.zeros([101, 101])
 
 stepIdx = 0
 currIt = 0
 allRxPkts = 0
 
-def calculate_cw_window(obs):
+alpha = 0.1
+gamma = 0.6
+epsilon=0.6
+def calculate_cw_window(num):
     
 
 
     k=np.random.randint(low=10,high=90, size=1)
-    action = np.ones(shape=len(obs), dtype=np.uint32) *10#* k[0]
+    action = np.ones(shape=len(state), dtype=np.uint32) *10#* k[0]
     
     
     return action
 
 try:
     while True:
-        obs = env.reset()
+        state = env.reset()
         reward = 0
         print("Start iteration: ", currIt)
         print("Step: ", stepIdx)
-        print("---obs: ", obs)
+        print("---state: ", state)
 
         while True:
             stepIdx += 1
 
             allRxPkts += reward
-            action = calculate_cw_window(obs)
+            if random.uniform(0,1)<epsilon:
+                action=env.action_space.sample()
+            else:
+                action = [np.argmax(q_table[state])]
+            #action = calculate_cw_window(state)
             print("---action: ", action)
 
-            obs, reward, done, info = env.step(action)
+            next_state, reward, done, info = env.step(action)
             print("Step: ", stepIdx)
-            print("---obs, reward, done, info: ", obs, reward, done, info)
+            print("---state, reward, done, info: ", next_state, reward, done, info)
+            old_value=q_table[state,action]
+            next_max = np.max(q_table[next_state])
+            new_value = (1 - alpha) * old_value + alpha * (reward + gamma * next_max)
+            q_table[state, action] = new_value
 
             if done:
                 stepIdx = 0
