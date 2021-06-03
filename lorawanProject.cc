@@ -135,7 +135,7 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
     uint32_t cwSize = actionVector.at(i);
     SetCw(node, cwSize, cwSize);
   }*/
-
+  senderApp->SetPacketSize(actionVector.at(0)); 
   return true;
 }
 
@@ -604,7 +604,7 @@ ConfigureTracing(firstNode);*/
    senderApp = DynamicCast<PeriodicSender>(appContainer.Get(0));
 
   ////////////*cambio de rendimiento*///////////////
-  senderApp->SetInterval(Seconds(100)); ///se necesita valores grandes para ver cambio
+  //senderApp->SetInterval(Seconds(100)); ///se necesita valores grandes para ver cambio
   senderApp->SetPacketSize(10);         // no se necesita valores grandes para ver cambio
   //////////////////////////
   appContainer.Start(Seconds(0));
@@ -639,7 +639,7 @@ double envStepTime = 30;
   openGymInterface->SetGetExtraInfoCb( MakeCallback (&MyGetExtraInfo) );
   openGymInterface->SetExecuteActionsCb( MakeCallback (&MyExecuteActions) );
 
-  Simulator::Schedule (Seconds(20.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
+  Simulator::Schedule (Seconds(0.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
 
 
 

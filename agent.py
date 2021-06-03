@@ -48,10 +48,11 @@ allRxPkts = 0
 
 def calculate_cw_window(obs):
     
-    
 
+
+    k=np.random.randint(low=10,high=90, size=1)
+    action = np.ones(shape=len(obs), dtype=np.uint32) *10#* k[0]
     
-    action = np.ones(shape=len(obs), dtype=np.uint32) * 20
     
     return action
 
