@@ -46,12 +46,18 @@ using namespace lorawan;
 // Define logging keyword for this file
 //
 NS_LOG_COMPONENT_DEFINE("ComplexLorawanNetworkExample");
+Ptr<PeriodicSender> senderApp;
+int cont = 0;
+int received = 0;
+int noMoreReceivers = 0;
+int interfered = 0;
+int underSensitivity = 0;
 /*
 Define observation space
 */
 Ptr<OpenGymSpace> MyGetObservationSpace(void)
 {
-  uint32_t nodeNum = NodeList::GetNNodes();
+  uint32_t nodeNum = 1;
   float low = 0.0;
   float high = 100.0;
   std::vector<uint32_t> shape = {
@@ -68,7 +74,7 @@ Define action space
 */
 Ptr<OpenGymSpace> MyGetActionSpace(void)
 {
-  uint32_t nodeNum = NodeList::GetNNodes();
+  uint32_t nodeNum = 1;
   float low = 0.0;
   float high = 100.0;
   std::vector<uint32_t> shape = {
@@ -89,6 +95,64 @@ bool MyGetGameOver(void)
   NS_LOG_UNCOND("MyGetGameOver: " << isGameOver);
   return isGameOver;
 }
+Ptr<OpenGymDataContainer> MyGetObservation(void)
+{
+  uint32_t nodeNum = 1;
+  std::vector<uint32_t> shape = {nodeNum,};
+  Ptr<OpenGymBoxContainer<uint32_t> > box = CreateObject<OpenGymBoxContainer<uint32_t> >(shape);
+
+  /*for (NodeList::Iterator i = NodeList::Begin (); i != NodeList::End (); ++i) {
+    Ptr<Node> node = *i;
+    Ptr<WifiMacQueue> queue = GetQueue (node);
+    uint32_t value = queue->GetNPackets();
+    box->AddValue(value);
+  }*/
+  
+  box->AddValue(received );
+
+  NS_LOG_UNCOND ("MyGetObservation: " << box);
+  return box;
+}
+
+std::string MyGetExtraInfo(void)
+{
+  std::string myInfo = "linear-wireless-mesh";
+  myInfo += "|123";
+  NS_LOG_UNCOND("MyGetExtraInfo: " << myInfo);
+  return myInfo;
+}
+bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
+{
+    NS_LOG_UNCOND ("MyExecuteActions: " << action);
+
+  Ptr<OpenGymBoxContainer<uint32_t> > box = DynamicCast<OpenGymBoxContainer<uint32_t> >(action);
+  std::vector<uint32_t> actionVector = box->GetData();
+
+  /*uint32_t nodeNum = NodeList::GetNNodes ();
+  for (uint32_t i=0; i<nodeNum; i++)
+  {
+    Ptr<Node> node = NodeList::GetNode(i);
+    uint32_t cwSize = actionVector.at(i);
+    SetCw(node, cwSize, cwSize);
+  }*/
+
+  return true;
+}
+
+float MyGetReward(void)
+{
+  static float lastValue = 0.0;
+  float reward = (double)received - lastValue;
+  lastValue = (float)received;
+  return reward;
+}
+void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGymInterface)
+{
+  Simulator::Schedule (Seconds(envStepTime), &ScheduleNextStateRead, envStepTime, openGymInterface);
+  openGymInterface->NotifyCurrentState();
+}
+
+
 void Tracer(Ptr<const Packet> packet)
 {
   NS_LOG_UNCOND("Se perdio");
@@ -145,11 +209,7 @@ int appPeriodSeconds = 1;
 bool print = true;
 
 /************************/
-int cont = 0;
-int received = 0;
-int noMoreReceivers = 0;
-int interfered = 0;
-int underSensitivity = 0;
+
 namespace std
 {
   enum PacketOutcome
@@ -541,7 +601,7 @@ ConfigureTracing(firstNode);*/
   Ptr<RandomVariableStream> rv = CreateObjectWithAttributes<UniformRandomVariable>(
       "Min", DoubleValue(0), "Max", DoubleValue(10));
   ApplicationContainer appContainer = appHelper.Install(endDevices);
-  Ptr<PeriodicSender> senderApp = DynamicCast<PeriodicSender>(appContainer.Get(0));
+   senderApp = DynamicCast<PeriodicSender>(appContainer.Get(0));
 
   ////////////*cambio de rendimiento*///////////////
   senderApp->SetInterval(Seconds(100)); ///se necesita valores grandes para ver cambio
@@ -566,10 +626,10 @@ ConfigureTracing(firstNode);*/
   //Create a forwarder for each gateway
   forHelper.Install(gateways);
 
-  /*
+  
 // OpenGym Env
 uint16_t port = 5555;
-double envStepTime = 0.3; 
+double envStepTime = 30; 
   Ptr<OpenGymInterface> openGymInterface = CreateObject<OpenGymInterface> (port);
   openGymInterface->SetGetActionSpaceCb( MakeCallback (&MyGetActionSpace) );
   openGymInterface->SetGetObservationSpaceCb( MakeCallback (&MyGetObservationSpace) );
@@ -579,10 +639,10 @@ double envStepTime = 0.3;
   openGymInterface->SetGetExtraInfoCb( MakeCallback (&MyGetExtraInfo) );
   openGymInterface->SetExecuteActionsCb( MakeCallback (&MyExecuteActions) );
 
-  Simulator::Schedule (Seconds(0.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
+  Simulator::Schedule (Seconds(20.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
 
 
-*/
+
 
   ////////////////
   // Simulation //

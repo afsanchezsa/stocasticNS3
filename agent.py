@@ -47,12 +47,12 @@ currIt = 0
 allRxPkts = 0
 
 def calculate_cw_window(obs):
-    diff = -np.diff(obs)
-    maxDiff = np.argmax(diff)
+    
+    
 
-    maxCw = 50
-    action = np.ones(shape=len(obs), dtype=np.uint32) * maxCw
-    action[maxDiff] = 5
+    
+    action = np.ones(shape=len(obs), dtype=np.uint32) * 20
+    
     return action
 
 try:
