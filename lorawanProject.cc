@@ -109,8 +109,9 @@ Ptr<OpenGymDataContainer> MyGetObservation(void)
     uint32_t value = queue->GetNPackets();
     box->AddValue(value);
   }*/
+ // double a = (cont - double(received))/cont;
   double a=double(received)/cont;
-  a*=30;
+  a*=100;
 
   box->AddValue(floor(a));
 
@@ -607,7 +608,7 @@ ConfigureTracing(firstNode);*/
   senderApp = DynamicCast<PeriodicSender>(appContainer.Get(0));
 
   ////////////*cambio de rendimiento*///////////////
-  //senderApp->SetInterval(Seconds(100)); ///se necesita valores grandes para ver cambio
+  senderApp->SetInterval(Seconds(100)); ///se necesita valores grandes para ver cambio
   senderApp->SetPacketSize(10); // no se necesita valores grandes para ver cambio
   //////////////////////////
   appContainer.Start(Seconds(0));
@@ -631,7 +632,7 @@ ConfigureTracing(firstNode);*/
 
   // OpenGym Env
   uint16_t port = 5555;
-  double envStepTime = 30;
+  double envStepTime = 10;
   Ptr<OpenGymInterface> openGymInterface = CreateObject<OpenGymInterface>(port);
   openGymInterface->SetGetActionSpaceCb(MakeCallback(&MyGetActionSpace));
   openGymInterface->SetGetObservationSpaceCb(MakeCallback(&MyGetObservationSpace));

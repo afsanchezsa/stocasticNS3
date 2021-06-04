@@ -27,8 +27,8 @@ startSim = bool(args.start)
 iterationNum = int(args.iterations)
 
 port = 5555
-simTime = 10 # seconds
-stepTime = 0.01  # seconds
+simTime = 600 # seconds
+stepTime = 10 # seconds
 seed = 0
 simArgs = {"--simTime": simTime,
            "--testArg": 123,
@@ -43,7 +43,7 @@ ob_space = env.observation_space
 ac_space = env.action_space
 print("Observation space: ", ob_space,  ob_space.dtype)
 print("Action space: ", ac_space, ac_space.dtype)
-q_table = np.zeros([101, 101])
+q_table = np.ones([301, 301])*250
 
 stepIdx = 0
 currIt = 0
@@ -51,7 +51,7 @@ allRxPkts = 0
 
 alpha = 0.1
 gamma = 0.6
-epsilon=0.6
+epsilon=1
 def calculate_cw_window(num):
     
 
