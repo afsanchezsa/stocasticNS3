@@ -109,9 +109,9 @@ Ptr<OpenGymDataContainer> MyGetObservation(void)
     uint32_t value = queue->GetNPackets();
     box->AddValue(value);
   }*/
- // double a = (cont - double(received))/cont;
-  double a=double(received)/cont;
-  a*=100;
+  // double a = (cont - double(received))/cont;
+  double a = double(received) / cont;
+  a *= 100;
 
   box->AddValue(floor(a));
 
@@ -161,19 +161,20 @@ void Tracer(Ptr<const Packet> packet)
 {
   NS_LOG_UNCOND("Se perdio");
 }
-void ConfigureTracing(Ptr<Node> node, u_int8_t windowValue, u_int8_t dataRate)
+void configureNode(Ptr<Node> node, u_int8_t newWindowValue, u_int8_t newDataRate,uint8_t newSpreadingFactor)
 { //// end-device-lorawan-mac.h setDatarate
   /// y las window en class-a-end-device-lorawan-mac.h
   Ptr<NetDevice> dev = node->GetDevice(0);
   Ptr<LoraNetDevice> lora_dev = DynamicCast<LoraNetDevice>(dev);
   Ptr<LorawanMac> lora_mac = lora_dev->GetMac();
   Ptr<ClassAEndDeviceLorawanMac> endDeviceMac = DynamicCast<ClassAEndDeviceLorawanMac>(lora_mac);
-  
-  //lora_mac->TraceConnectWithoutContext ("CannotSendBecauseDutyCycle", MakeCallback(&Tracer));
- // endDeviceMac->SetSecondReceiveWindowDataRate(windowValue);
-  endDeviceMac->SetDataRate(dataRate);
-  endDeviceMac->SetDataRateAdaptation(true);
- // std::cout<<"is enabled:"<<endDeviceMac->GetDataRateAdaptation()<<std::endl;
+  Ptr<LoraPhy> phy = lora_dev->GetPhy();
+  Ptr<EndDeviceLoraPhy> end_device_phy = DynamicCast<EndDeviceLoraPhy>(phy);
+  end_device_phy->SetSpreadingFactor(newSpreadingFactor);
+  endDeviceMac->SetSecondReceiveWindowDataRate(newWindowValue);
+  endDeviceMac->SetDataRate(newDataRate);
+  //endDeviceMac->SetDataRateAdaptation(true);
+  // std::cout<<"is enabled:"<<endDeviceMac->GetDataRateAdaptation()<<std::endl;
 }
 void printIntVector(std::vector<int> const &input)
 {
@@ -252,11 +253,11 @@ void CheckReceptionByAllGWsComplete(std::map<Ptr<Packet const>, std::PacketStatu
       {
       case std::RECEIVED:
       {
-    //    if (go)
-      //  {
-          received += 1;
+        //    if (go)
+        //  {
+        received += 1;
         //  go = false;
-       // }
+        // }
 
         break;
       }
@@ -490,15 +491,15 @@ int main(int argc, char *argv[])
     Ptr<LoraNetDevice> loraNetDevice = node->GetDevice(0)->GetObject<LoraNetDevice>();
     Ptr<LoraPhy> phy = loraNetDevice->GetPhy();
     phy->TraceConnectWithoutContext("StartSending", MakeCallback(&TransmissionCallback));
-    Ptr<EndDeviceLoraPhy> k=DynamicCast<EndDeviceLoraPhy>(phy);
-    k->SetSpreadingFactor(12);
+
     ///////////////////////
-    ConfigureTracing(node,1,0);
+    //configureNode(node, 1, 6, 7);//this scenario change metrics
+    configureNode(node, 1, 0, 12);
   }
 
   /*NodeContainer::Iterator j=endDevices.Begin();
 Ptr<Node> firstNode=*j;
-ConfigureTracing(firstNode);*/
+configureNode(firstNode);*/
   /*********************
    *  Create Gateways  *
    *********************/
@@ -599,11 +600,11 @@ ConfigureTracing(firstNode);*/
   /*********************************************
    *  Install applications on the end devices  *
    *********************************************/
-
+  uint8_t packetSize=23;
   Time appStopTime = Seconds(simulationTime);
   PeriodicSenderHelper appHelper = PeriodicSenderHelper();
   appHelper.SetPeriod(Seconds(appPeriodSeconds));
-  appHelper.SetPacketSize(23);
+  appHelper.SetPacketSize(packetSize);
 
   Ptr<RandomVariableStream> rv = CreateObjectWithAttributes<UniformRandomVariable>(
       "Min", DoubleValue(0), "Max", DoubleValue(10));
@@ -632,7 +633,7 @@ ConfigureTracing(firstNode);*/
 
   //Create a forwarder for each gateway
   forHelper.Install(gateways);
-/*
+  /*
   // OpenGym Env
   uint16_t port = 5555;
   double envStepTime = 10;
@@ -651,7 +652,7 @@ ConfigureTracing(firstNode);*/
   // Simulation //
   ////////////////
 
-  Simulator::Stop(appStopTime+Seconds(180));
+  Simulator::Stop(appStopTime + Seconds(180));
 
   NS_LOG_INFO("Running simulation...");
   Simulator::Run();
@@ -680,7 +681,7 @@ ConfigureTracing(firstNode);*/
             << "\nPaquetes Perdidos:" << packetLost
             << "\nProbabilidad de Recepcion satisfactoria:" << receivedProb
             << "\nPaquetes Recibidos:" << received
-            << "\nThrougput:" << double(received) * 8 * 10 / double(simulationTime) << " bps"
+            << "\nThrougput:" << double(received) * 8 * packetSize / double(simulationTime) << " bps"
             << "\nProbabilidad de Interferencia:" << interferedProb
             << "\nProbabilidad de No Recepcion:" << noMoreReceiversProb
             << "\nProbabilidad de Baja Sensibilidad:" << underSensitivityProb
