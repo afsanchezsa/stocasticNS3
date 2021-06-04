@@ -168,10 +168,12 @@ void ConfigureTracing(Ptr<Node> node, u_int8_t windowValue, u_int8_t dataRate)
   Ptr<LoraNetDevice> lora_dev = DynamicCast<LoraNetDevice>(dev);
   Ptr<LorawanMac> lora_mac = lora_dev->GetMac();
   Ptr<ClassAEndDeviceLorawanMac> endDeviceMac = DynamicCast<ClassAEndDeviceLorawanMac>(lora_mac);
-
+  
   //lora_mac->TraceConnectWithoutContext ("CannotSendBecauseDutyCycle", MakeCallback(&Tracer));
-  endDeviceMac->SetSecondReceiveWindowDataRate(windowValue);
+ // endDeviceMac->SetSecondReceiveWindowDataRate(windowValue);
   endDeviceMac->SetDataRate(dataRate);
+  endDeviceMac->SetDataRateAdaptation(true);
+ // std::cout<<"is enabled:"<<endDeviceMac->GetDataRateAdaptation()<<std::endl;
 }
 void printIntVector(std::vector<int> const &input)
 {
@@ -199,15 +201,15 @@ std::vector<std::string> split(const std::string &str, const std::string &delim)
 }
 
 // Network settings
-int nDevices = 17;
+int nDevices = 200;
 int nGateways = 1;
-double radius = 64; //Note that due to model updates, 7500 m is no longer the maximum distance
+double radius = 500; //Note that due to model updates, 7500 m is no longer the maximum distance
 double simulationTime = 600;
 
 // Channel model
-bool realisticChannelModel = false;
+bool realisticChannelModel = true;
 
-int appPeriodSeconds = 20;
+int appPeriodSeconds = 300;
 
 // Output control
 bool print = true;
@@ -243,18 +245,18 @@ void CheckReceptionByAllGWsComplete(std::map<Ptr<Packet const>, std::PacketStatu
   {
     // Update the statistics
     std::PacketStatus status = (*it).second;
-    bool go = true;
+    //bool go = true;
     for (int j = 0; j < nGateways; j++)
     {
       switch ((int)status.outcomes.at(j)) //por si acaso castear a entero lo del switch
       {
       case std::RECEIVED:
       {
-        if (go)
-        {
+    //    if (go)
+      //  {
           received += 1;
-          go = false;
-        }
+        //  go = false;
+       // }
 
         break;
       }
@@ -291,7 +293,7 @@ void CheckReceptionByAllGWsComplete(std::map<Ptr<Packet const>, std::PacketStatu
 
 void TransmissionCallback(Ptr<Packet const> packet, uint32_t systemId)
 {
-  NS_LOG_DEBUG("Transmitted a packet from device " << systemId);
+  //NS_LOG_DEBUG("Transmitted a packet from device " << systemId);
   // Create a packetStatus
   std::PacketStatus status;
   status.packet = packet;
@@ -304,7 +306,7 @@ void TransmissionCallback(Ptr<Packet const> packet, uint32_t systemId)
 }
 void PacketReceptionCallback(Ptr<Packet const> packet, uint32_t systemId)
 {
-  NS_LOG_INFO("A packet was successfully received at gateway " << systemId);
+  //NS_LOG_INFO("A packet was successfully received at gateway " << systemId);
   std::map<Ptr<Packet const>, std::PacketStatus>::iterator it = packetTracker.find(packet);
   (*it).second.outcomes.at(systemId - nDevices) = std::RECEIVED;
   (*it).second.outcomeNumber += 1;
@@ -313,7 +315,7 @@ void PacketReceptionCallback(Ptr<Packet const> packet, uint32_t systemId)
 
 void InterferenceCallback(Ptr<Packet const> packet, uint32_t systemId)
 {
-  NS_LOG_INFO("A packet was interferenced at gateway " << systemId);
+  //NS_LOG_INFO("A packet was interferenced at gateway " << systemId);
 
   std::map<Ptr<Packet const>, std::PacketStatus>::iterator it = packetTracker.find(packet);
   it->second.outcomes.at(systemId - nDevices) = std::INTERFERED;
@@ -488,9 +490,10 @@ int main(int argc, char *argv[])
     Ptr<LoraNetDevice> loraNetDevice = node->GetDevice(0)->GetObject<LoraNetDevice>();
     Ptr<LoraPhy> phy = loraNetDevice->GetPhy();
     phy->TraceConnectWithoutContext("StartSending", MakeCallback(&TransmissionCallback));
-
+    Ptr<EndDeviceLoraPhy> k=DynamicCast<EndDeviceLoraPhy>(phy);
+    k->SetSpreadingFactor(12);
     ///////////////////////
-    //ConfigureTracing(node,1,250);
+    ConfigureTracing(node,1,0);
   }
 
   /*NodeContainer::Iterator j=endDevices.Begin();
@@ -589,7 +592,7 @@ ConfigureTracing(firstNode);*/
    *  Set up the end device's spreading factor  *
    **********************************************/
 
-  macHelper.SetSpreadingFactorsUp(endDevices, gateways, channel);
+  //macHelper.SetSpreadingFactorsUp(endDevices, gateways, channel);
 
   NS_LOG_DEBUG("Completed configuration");
 
@@ -629,7 +632,7 @@ ConfigureTracing(firstNode);*/
 
   //Create a forwarder for each gateway
   forHelper.Install(gateways);
-
+/*
   // OpenGym Env
   uint16_t port = 5555;
   double envStepTime = 10;
@@ -643,16 +646,16 @@ ConfigureTracing(firstNode);*/
   openGymInterface->SetExecuteActionsCb(MakeCallback(&MyExecuteActions));
 
   Simulator::Schedule(Seconds(0.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
-
+*/
   ////////////////
   // Simulation //
   ////////////////
 
-  Simulator::Stop(appStopTime);
+  Simulator::Stop(appStopTime+Seconds(180));
 
   NS_LOG_INFO("Running simulation...");
   Simulator::Run();
-  openGymInterface->NotifySimulationEnd();
+  //openGymInterface->NotifySimulationEnd();
   Simulator::Destroy();
 
   ///////////////////////////
