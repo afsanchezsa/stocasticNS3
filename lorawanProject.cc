@@ -207,7 +207,7 @@ double simulationTime = 600;
 // Channel model
 bool realisticChannelModel = false;
 
-int appPeriodSeconds = 1;
+int appPeriodSeconds = 20;
 
 // Output control
 bool print = true;

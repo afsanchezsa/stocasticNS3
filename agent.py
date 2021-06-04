@@ -51,7 +51,7 @@ allRxPkts = 0
 
 alpha = 0.1
 gamma = 0.6
-epsilon=1
+epsilon=0.3
 def calculate_cw_window(num):
     
 
