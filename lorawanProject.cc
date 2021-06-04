@@ -608,8 +608,8 @@ ConfigureTracing(firstNode);*/
   senderApp = DynamicCast<PeriodicSender>(appContainer.Get(0));
 
   ////////////*cambio de rendimiento*///////////////
-  senderApp->SetInterval(Seconds(100)); ///se necesita valores grandes para ver cambio
-  senderApp->SetPacketSize(10); // no se necesita valores grandes para ver cambio
+  //senderApp->SetInterval(Seconds(100)); ///se necesita valores grandes para ver cambio
+  //senderApp->SetPacketSize(10); // no se necesita valores grandes para ver cambio
   //////////////////////////
   appContainer.Start(Seconds(0));
   appContainer.Stop(appStopTime);
