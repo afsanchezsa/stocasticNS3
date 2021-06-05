@@ -48,13 +48,25 @@ using namespace lorawan;
 NS_LOG_COMPONENT_DEFINE("ComplexLorawanNetworkExample");
 Ptr<PeriodicSender> senderApp;
 NodeContainer endDevices;
-std::unordered_map<u_int32_t, u_int32_t> dataRateCorrespondence;//map spreading factor to its correspondence in datarate
+NodeContainer gateways;
+std::unordered_map<u_int32_t, u_int32_t> dataRateCorrespondence; //map spreading factor to its correspondence in datarate
 int cont = 0;
 int received = 0;
 int noMoreReceivers = 0;
 int interfered = 0;
 int underSensitivity = 0;
-void configureNode(Ptr<Node> node, u_int8_t newWindowValue, u_int8_t newDataRate,uint8_t newSpreadingFactor)
+
+Vector getPosition(Ptr<Node> node)
+{
+  Ptr<MobilityModel> mobility = node->GetObject<MobilityModel>();
+  Vector position = mobility->GetPosition();
+  return position;
+}
+double distanceNode(Vector pos1,Vector pos2)
+{
+ return sqrt(pow(pos1.x-pos2.x,2)+pow(pos1.y-pos2.y,2)+pow(pos1.z-pos2.z,2));
+}
+void configureNode(Ptr<Node> node, u_int8_t newWindowValue, u_int8_t newDataRate, uint8_t newSpreadingFactor)
 { //// end-device-lorawan-mac.h setDatarate
   /// y las window en class-a-end-device-lorawan-mac.h
   Ptr<NetDevice> dev = node->GetDevice(0);
@@ -70,8 +82,6 @@ void configureNode(Ptr<Node> node, u_int8_t newWindowValue, u_int8_t newDataRate
   // std::cout<<"is enabled:"<<endDeviceMac->GetDataRateAdaptation()<<std::endl;
 }
 
-
-
 /*
 Define observation space
 */
@@ -83,7 +93,7 @@ Ptr<OpenGymSpace> MyGetObservationSpace(void)
   std::vector<uint32_t> shape = {
       nodeNum,
   };
-  std::string dtype = TypeNameGet<uint32_t>();
+  std::string dtype = TypeNameGet<double>();
   Ptr<OpenGymBoxSpace> space = CreateObject<OpenGymBoxSpace>(low, high, shape, dtype);
   NS_LOG_UNCOND("MyGetObservationSpace: " << space);
   return space;
@@ -121,20 +131,23 @@ Ptr<OpenGymDataContainer> MyGetObservation(void)
   std::vector<uint32_t> shape = {
       nodeNum,
   };
-  Ptr<OpenGymBoxContainer<uint32_t>> box = CreateObject<OpenGymBoxContainer<uint32_t>>(shape);
-
-  /*for (NodeList::Iterator i = NodeList::Begin (); i != NodeList::End (); ++i) {
+  Ptr<OpenGymBoxContainer<double>> box = CreateObject<OpenGymBoxContainer<double>>(shape);
+  NodeList::Iterator gat_i=gateways.Begin();
+  Ptr<Node>gatewayNode=*gat_i;
+  Vector gatewayPosition=getPosition(gatewayNode);
+  for (NodeList::Iterator i = endDevices.Begin (); i != endDevices.End (); ++i) {
     Ptr<Node> node = *i;
-    Ptr<WifiMacQueue> queue = GetQueue (node);
-    uint32_t value = queue->GetNPackets();
-    box->AddValue(value);
-  }*/
+    Vector nodePosition=getPosition(node);
+    double distance=distanceNode(nodePosition,gatewayPosition);
+    
+    box->AddValue(distance);
+  }
   // double a = (cont - double(received))/cont;
-  double a = double(received) / cont;
+  /*double a = double(received) / cont;
   a *= 100;
 
   box->AddValue(floor(a));
-
+*/
   NS_LOG_UNCOND("MyGetObservation: " << box);
   return box;
 }
@@ -150,17 +163,18 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
 {
   NS_LOG_UNCOND("MyExecuteActions: " << action);
 
-  Ptr<OpenGymBoxContainer<uint32_t> > box = DynamicCast<OpenGymBoxContainer<uint32_t> >(action);
+  Ptr<OpenGymBoxContainer<uint32_t>> box = DynamicCast<OpenGymBoxContainer<uint32_t>>(action);
   std::vector<uint32_t> actionVector = box->GetData();
-  int i=0;
+  int i = 0;
   u_int32_t newSpreadingFactor;
-for (NodeContainer::Iterator j = endDevices.Begin(); j != endDevices.End(); ++j) {
+  for (NodeContainer::Iterator j = endDevices.Begin(); j != endDevices.End(); ++j)
+  {
     Ptr<Node> node = *j;
-    newSpreadingFactor=actionVector.at(0);
-    configureNode(node,1,dataRateCorrespondence[newSpreadingFactor],newSpreadingFactor);
+    newSpreadingFactor = actionVector.at(0);
+    configureNode(node, 1, dataRateCorrespondence[newSpreadingFactor], newSpreadingFactor);
     i++;
-    }
- // senderApp->SetPacketSize(actionVector.at(0));
+  }
+  // senderApp->SetPacketSize(actionVector.at(0));
   return true;
 }
 
@@ -208,7 +222,7 @@ std::vector<std::string> split(const std::string &str, const std::string &delim)
 }
 
 // Network settings
-int nDevices = 200;
+int nDevices = 18;
 int nGateways = 1;
 double radius = 500; //Note that due to model updates, 7500 m is no longer the maximum distance
 double simulationTime = 600;
@@ -216,7 +230,7 @@ double simulationTime = 600;
 // Channel model
 bool realisticChannelModel = true;
 
-int appPeriodSeconds = 300;
+int appPeriodSeconds = 100;
 
 // Output control
 bool print = true;
@@ -461,7 +475,7 @@ int main(int argc, char *argv[])
    ************************/
 
   // Create a set of nodes
-  
+
   endDevices.Create(nDevices);
 
   // Assign a mobility model to each node
@@ -489,12 +503,12 @@ int main(int argc, char *argv[])
   helper.Install(phyHelper, macHelper, endDevices);
 
   // Now end devices are connected to the channel
-dataRateCorrespondence[12]=0;
-dataRateCorrespondence[11]=1;
-dataRateCorrespondence[10]=2;
-dataRateCorrespondence[9]=3;
-dataRateCorrespondence[8]=4;
-dataRateCorrespondence[7]=6;
+  dataRateCorrespondence[12] = 0;
+  dataRateCorrespondence[11] = 1;
+  dataRateCorrespondence[10] = 2;
+  dataRateCorrespondence[9] = 3;
+  dataRateCorrespondence[8] = 4;
+  dataRateCorrespondence[7] = 6;
 
   // Connect trace sources
   for (NodeContainer::Iterator j = endDevices.Begin(); j != endDevices.End(); ++j)
@@ -517,7 +531,7 @@ configureNode(firstNode);*/
    *********************/
 
   // Create the gateway nodes (allocate them uniformely on the disc)
-  NodeContainer gateways;
+  
   gateways.Create(nGateways);
 
   Ptr<ListPositionAllocator> allocator = CreateObject<ListPositionAllocator>();
@@ -612,7 +626,7 @@ configureNode(firstNode);*/
   /*********************************************
    *  Install applications on the end devices  *
    *********************************************/
-  uint8_t packetSize=23;
+  uint8_t packetSize = 23;
   Time appStopTime = Seconds(simulationTime);
   PeriodicSenderHelper appHelper = PeriodicSenderHelper();
   appHelper.SetPeriod(Seconds(appPeriodSeconds));
@@ -645,7 +659,7 @@ configureNode(firstNode);*/
 
   //Create a forwarder for each gateway
   forHelper.Install(gateways);
-  
+
   // OpenGym Env
   uint16_t port = 5555;
   double envStepTime = 10;

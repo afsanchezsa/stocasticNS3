@@ -85,10 +85,10 @@ try:
             next_state, reward, done, info = env.step(action)
             print("Step: ", stepIdx)
             print("---state, reward, done, info: ", next_state, reward, done, info)
-            old_value=q_table[state,action]
-            next_max = np.max(q_table[next_state])
-            new_value = (1 - alpha) * old_value + alpha * (reward + gamma * next_max)
-            q_table[state, action] = new_value
+            #old_value=q_table[state,action]
+            #next_max = np.max(q_table[next_state])
+            #new_value = (1 - alpha) * old_value + alpha * (reward + gamma * next_max)
+            #q_table[state, action] = new_value
 
             if done:
                 stepIdx = 0
