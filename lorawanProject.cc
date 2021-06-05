@@ -230,7 +230,7 @@ double simulationTime = 600;
 // Channel model
 bool realisticChannelModel = true;
 
-int appPeriodSeconds = 100;
+int appPeriodSeconds = 20;
 
 // Output control
 bool print = true;
@@ -418,7 +418,11 @@ int main(int argc, char *argv[])
   MobilityHelper mobility;
   mobility.SetPositionAllocator("ns3::UniformDiscPositionAllocator", "rho", DoubleValue(radius),
                                 "X", DoubleValue(0.0), "Y", DoubleValue(0.0));
-  mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+  //mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+  mobility.SetMobilityModel ("ns3::RandomDirection2dMobilityModel",
+                              "Bounds", RectangleValue (Rectangle (-500, 500, -500, 500)),
+                              "Speed", StringValue ("ns3::ConstantRandomVariable[Constant=1]"),
+                              "Pause", StringValue ("ns3::ConstantRandomVariable[Constant=0.2]"));
 
   /************************
    *  Create the channel  *
