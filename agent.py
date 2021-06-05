@@ -51,13 +51,13 @@ allRxPkts = 0
 
 alpha = 0.1
 gamma = 0.6
-epsilon=0.3
+epsilon=1
 def calculate_cw_window(num):
     
 
 
     k=np.random.randint(low=10,high=90, size=1)
-    action = np.ones(shape=len(state), dtype=np.uint32) *10#* k[0]
+    action = np.ones(shape=len(state), dtype=np.uint8) *10#* k[0]
     
     
     return action
@@ -77,8 +77,9 @@ try:
             if random.uniform(0,1)<epsilon:
                 action=env.action_space.sample()
             else:
-                action = [np.argmax(q_table[state])]
+                action = np.argmax(q_table[state])
             #action = calculate_cw_window(state)
+            action=[12]#only can take values between 7 and 12
             print("---action: ", action)
 
             next_state, reward, done, info = env.step(action)

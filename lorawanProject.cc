@@ -47,18 +47,38 @@ using namespace lorawan;
 //
 NS_LOG_COMPONENT_DEFINE("ComplexLorawanNetworkExample");
 Ptr<PeriodicSender> senderApp;
+NodeContainer endDevices;
+std::unordered_map<u_int32_t, u_int32_t> dataRateCorrespondence;//map spreading factor to its correspondence in datarate
 int cont = 0;
 int received = 0;
 int noMoreReceivers = 0;
 int interfered = 0;
 int underSensitivity = 0;
+void configureNode(Ptr<Node> node, u_int8_t newWindowValue, u_int8_t newDataRate,uint8_t newSpreadingFactor)
+{ //// end-device-lorawan-mac.h setDatarate
+  /// y las window en class-a-end-device-lorawan-mac.h
+  Ptr<NetDevice> dev = node->GetDevice(0);
+  Ptr<LoraNetDevice> lora_dev = DynamicCast<LoraNetDevice>(dev);
+  Ptr<LorawanMac> lora_mac = lora_dev->GetMac();
+  Ptr<ClassAEndDeviceLorawanMac> endDeviceMac = DynamicCast<ClassAEndDeviceLorawanMac>(lora_mac);
+  Ptr<LoraPhy> phy = lora_dev->GetPhy();
+  Ptr<EndDeviceLoraPhy> end_device_phy = DynamicCast<EndDeviceLoraPhy>(phy);
+  end_device_phy->SetSpreadingFactor(newSpreadingFactor);
+  endDeviceMac->SetSecondReceiveWindowDataRate(newWindowValue);
+  endDeviceMac->SetDataRate(newDataRate);
+  //endDeviceMac->SetDataRateAdaptation(true);
+  // std::cout<<"is enabled:"<<endDeviceMac->GetDataRateAdaptation()<<std::endl;
+}
+
+
+
 /*
 Define observation space
 */
 Ptr<OpenGymSpace> MyGetObservationSpace(void)
 {
   uint32_t nodeNum = 1;
-  float low = 10.0;
+  float low = 0.0;
   float high = 100.0;
   std::vector<uint32_t> shape = {
       nodeNum,
@@ -75,8 +95,8 @@ Define action space
 Ptr<OpenGymSpace> MyGetActionSpace(void)
 {
   uint32_t nodeNum = 1;
-  float low = 10.0;
-  float high = 100.0;
+  float low = 7.0;
+  float high = 12.0;
   std::vector<uint32_t> shape = {
       nodeNum,
   };
@@ -130,17 +150,17 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
 {
   NS_LOG_UNCOND("MyExecuteActions: " << action);
 
-  Ptr<OpenGymBoxContainer<uint32_t>> box = DynamicCast<OpenGymBoxContainer<uint32_t>>(action);
+  Ptr<OpenGymBoxContainer<uint32_t> > box = DynamicCast<OpenGymBoxContainer<uint32_t> >(action);
   std::vector<uint32_t> actionVector = box->GetData();
-
-  /*uint32_t nodeNum = NodeList::GetNNodes ();
-  for (uint32_t i=0; i<nodeNum; i++)
-  {
-    Ptr<Node> node = NodeList::GetNode(i);
-    uint32_t cwSize = actionVector.at(i);
-    SetCw(node, cwSize, cwSize);
-  }*/
-  senderApp->SetPacketSize(actionVector.at(0));
+  int i=0;
+  u_int32_t newSpreadingFactor;
+for (NodeContainer::Iterator j = endDevices.Begin(); j != endDevices.End(); ++j) {
+    Ptr<Node> node = *j;
+    newSpreadingFactor=actionVector.at(0);
+    configureNode(node,1,dataRateCorrespondence[newSpreadingFactor],newSpreadingFactor);
+    i++;
+    }
+ // senderApp->SetPacketSize(actionVector.at(0));
   return true;
 }
 
@@ -161,21 +181,7 @@ void Tracer(Ptr<const Packet> packet)
 {
   NS_LOG_UNCOND("Se perdio");
 }
-void configureNode(Ptr<Node> node, u_int8_t newWindowValue, u_int8_t newDataRate,uint8_t newSpreadingFactor)
-{ //// end-device-lorawan-mac.h setDatarate
-  /// y las window en class-a-end-device-lorawan-mac.h
-  Ptr<NetDevice> dev = node->GetDevice(0);
-  Ptr<LoraNetDevice> lora_dev = DynamicCast<LoraNetDevice>(dev);
-  Ptr<LorawanMac> lora_mac = lora_dev->GetMac();
-  Ptr<ClassAEndDeviceLorawanMac> endDeviceMac = DynamicCast<ClassAEndDeviceLorawanMac>(lora_mac);
-  Ptr<LoraPhy> phy = lora_dev->GetPhy();
-  Ptr<EndDeviceLoraPhy> end_device_phy = DynamicCast<EndDeviceLoraPhy>(phy);
-  end_device_phy->SetSpreadingFactor(newSpreadingFactor);
-  endDeviceMac->SetSecondReceiveWindowDataRate(newWindowValue);
-  endDeviceMac->SetDataRate(newDataRate);
-  //endDeviceMac->SetDataRateAdaptation(true);
-  // std::cout<<"is enabled:"<<endDeviceMac->GetDataRateAdaptation()<<std::endl;
-}
+
 void printIntVector(std::vector<int> const &input)
 {
   for (std::vector<int>::size_type i = 0; i < input.size(); i++)
@@ -455,7 +461,7 @@ int main(int argc, char *argv[])
    ************************/
 
   // Create a set of nodes
-  NodeContainer endDevices;
+  
   endDevices.Create(nDevices);
 
   // Assign a mobility model to each node
@@ -483,6 +489,12 @@ int main(int argc, char *argv[])
   helper.Install(phyHelper, macHelper, endDevices);
 
   // Now end devices are connected to the channel
+dataRateCorrespondence[12]=0;
+dataRateCorrespondence[11]=1;
+dataRateCorrespondence[10]=2;
+dataRateCorrespondence[9]=3;
+dataRateCorrespondence[8]=4;
+dataRateCorrespondence[7]=6;
 
   // Connect trace sources
   for (NodeContainer::Iterator j = endDevices.Begin(); j != endDevices.End(); ++j)
@@ -633,7 +645,7 @@ configureNode(firstNode);*/
 
   //Create a forwarder for each gateway
   forHelper.Install(gateways);
-  /*
+  
   // OpenGym Env
   uint16_t port = 5555;
   double envStepTime = 10;
@@ -647,7 +659,7 @@ configureNode(firstNode);*/
   openGymInterface->SetExecuteActionsCb(MakeCallback(&MyExecuteActions));
 
   Simulator::Schedule(Seconds(0.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
-*/
+
   ////////////////
   // Simulation //
   ////////////////
@@ -656,7 +668,7 @@ configureNode(firstNode);*/
 
   NS_LOG_INFO("Running simulation...");
   Simulator::Run();
-  //openGymInterface->NotifySimulationEnd();
+  openGymInterface->NotifySimulationEnd();
   Simulator::Destroy();
 
   ///////////////////////////
@@ -679,8 +691,8 @@ configureNode(firstNode);*/
   std::cout << "Numero de End Devices:" << nDevices
             << "\nPaquetes Enviados:" << cont
             << "\nPaquetes Perdidos:" << packetLost
-            << "\nProbabilidad de Recepcion satisfactoria:" << receivedProb
             << "\nPaquetes Recibidos:" << received
+            << "\nProbabilidad de Recepcion satisfactoria:" << receivedProb
             << "\nThrougput:" << double(received) * 8 * packetSize / double(simulationTime) << " bps"
             << "\nProbabilidad de Interferencia:" << interferedProb
             << "\nProbabilidad de No Recepcion:" << noMoreReceiversProb
