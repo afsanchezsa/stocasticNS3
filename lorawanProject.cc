@@ -542,6 +542,7 @@ configureNode(firstNode);*/
   // Make it so that nodes are at a certain height > 0
   allocator->Add(Vector(0.0, 0.0, 15.0));
   mobility.SetPositionAllocator(allocator);
+  mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.Install(gateways);
 
   // Create a netdevice for each gateway
