@@ -250,6 +250,7 @@ int main(int argc, char *argv[]) {
 
   Experiment experiment;
 
+  // Based on this paper: http://www.scielo.org.co/pdf/dyna/v84n202/0012-7353-dyna-84-202-00055.pdf
   NS_LOG_DEBUG("Traffic video on demand");
   StringValue offTime("ns3::LogNormalRandomVariable[Mu=0.4026|Sigma=0.0352]");
   StringValue onTime("ns3::WeibullRandomVariable[Shape=10.2036|Scale=57480.9]");
