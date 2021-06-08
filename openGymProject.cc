@@ -167,7 +167,7 @@ Ptr<OpenGymDataContainer> MyGetObservation(void)
 uint64_t g_rxPktNum = 0;
 void DestRxPkt (Ptr<const Packet> packet)
 {
-  NS_LOG_DEBUG ("Client received a packet of " << packet->GetSize () << " bytes");
+  NS_LOG_UNCOND ("Client received a packet of " << packet->GetSize () << " bytes");
   g_rxPktNum++;
 }
 
@@ -258,7 +258,7 @@ void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGymInte
    //
    uint32_t backboneNodes = 20;
    uint32_t stopTime = 30;
-   double envStepTime = 0.1; 
+   double envStepTime = 0.3; 
    bool useCourseChangeCallback = false;
    uint32_t pktPerSec = 30;
    uint32_t payloadSize = 1500;
@@ -367,7 +367,7 @@ void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGymInte
 
   uint16_t port = 5555;
   uint32_t srcNodeId = 0;
-  uint32_t destNodeId = backbone.GetN() - 1;
+  uint32_t destNodeId =1;//backbone.GetN() - 1;
   Ptr<Node> srcNode = backbone.Get(srcNodeId);
   Ptr<Node> dstNode = backbone.Get(destNodeId);
 
@@ -431,7 +431,7 @@ void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGymInte
    //                                                                       //
    // Tracing configuration                                                 //
    //                                                                       //
- /*
+ 
    NS_LOG_INFO ("Configure Tracing.");
    CsmaHelper csma;
  
@@ -453,12 +453,11 @@ void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGymInte
  
    AnimationInterface anim ("mixed-wireless.xml");
 
-  */                                                                  
+                                                                   
 NS_LOG_UNCOND ("Simulation start");
   Simulator::Stop (Seconds (stopTime));
   Simulator::Run ();
   NS_LOG_UNCOND ("Simulation stop");
-
   openGymInterface->NotifySimulationEnd();
   Simulator::Destroy ();
    
