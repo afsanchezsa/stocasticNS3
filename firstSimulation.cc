@@ -34,7 +34,7 @@ NS_LOG_COMPONENT_DEFINE("WifiAdHoc");
 class Experiment {
   public:
     Experiment();
-    void Run(StringValue onTime, StringValue offTime, uint32_t nodes, uint32_t stopTime, uint32_t packetSizeOnOff);
+    void Run(StringValue onTime, StringValue offTime, uint32_t nodes, uint32_t stopTime, uint32_t packetSizeOnOff, uint32_t radius);
 };
 
 // void Experiment::ReceivePacket(Ptr<Socket> socket) {
@@ -45,7 +45,7 @@ class Experiment {
 
 Experiment::Experiment() {}
 
-void Experiment::Run(StringValue onTime, StringValue offTime, uint32_t nodes, uint32_t stopTime, uint32_t packetSizeOnOff) {
+void Experiment::Run(StringValue onTime, StringValue offTime, uint32_t nodes, uint32_t stopTime, uint32_t packetSizeOnOff, uint32_t radius) {
   double interval = 0.5;	// seconds
   Time interPacketInterval = Seconds(interval);
 
@@ -53,7 +53,7 @@ void Experiment::Run(StringValue onTime, StringValue offTime, uint32_t nodes, ui
  	// First, we declare and initialize a few local variables that control some
  	// simulation parameters.
  	//
-  std::string phyMode("DsssRate1Mbps");
+  std::string phyMode("DsssRate5_5Mbps");
 
  	//                                                                      	//
  	// Construct the nodes                                               	   	//
@@ -122,13 +122,8 @@ void Experiment::Run(StringValue onTime, StringValue offTime, uint32_t nodes, ui
  	// each of the nodes we just finished building.
  	//
   MobilityHelper mobility;
-  mobility.SetPositionAllocator("ns3::GridPositionAllocator",
-    "MinX", DoubleValue(20.0),
-    "MinY", DoubleValue(20.0),
-    "DeltaX", DoubleValue(10.0),
-    "DeltaY", DoubleValue(10.0),
-    "GridWidth", UintegerValue(5),
-    "LayoutType", StringValue("RowFirst"));
+  mobility.SetPositionAllocator("ns3::UniformDiscPositionAllocator", "rho", DoubleValue(radius),
+    "X", DoubleValue(0.0), "Y", DoubleValue(0.0));
   mobility.SetMobilityModel("ns3::RandomDirection2dMobilityModel",
     "Bounds", RectangleValue(Rectangle(-500, 500, -500, 500)),
     "Speed", StringValue("ns3::ConstantRandomVariable[Constant=1]"),
@@ -227,6 +222,8 @@ int main(int argc, char *argv[]) {
 
   uint32_t nodes = 20;
   uint32_t stopTime = 30;
+  uint32_t packetSize = 1000;
+  uint32_t radius = 10;
 
  	//
  	// For convenience, we add the local variables to the command line argument
@@ -236,6 +233,8 @@ int main(int argc, char *argv[]) {
   CommandLine cmd;
   cmd.AddValue("nodes", "Number of nodes", nodes);
   cmd.AddValue("stopTime", "Simulation stop time (seconds)", stopTime);
+  cmd.AddValue("packetSize", "Packet size (bytes)", packetSize);
+  cmd.AddValue("radius", "The radius of the area to simulate", radius);
 
  	//
  	// The system global variables and the local values added to the argument
@@ -251,19 +250,19 @@ int main(int argc, char *argv[]) {
   Experiment experiment;
 
   // Based on this paper: http://www.scielo.org.co/pdf/dyna/v84n202/0012-7353-dyna-84-202-00055.pdf
-  NS_LOG_DEBUG("Traffic video on demand");
+  NS_LOG_UNCOND("Traffic video on demand");
   StringValue offTime("ns3::LogNormalRandomVariable[Mu=0.4026|Sigma=0.0352]");
-  StringValue onTime("ns3::WeibullRandomVariable[Shape=10.2036|Scale=57480.9]");
+  StringValue onTime("ns3::WeibullRandomVariable[Shape=2|Scale=10]");
   experiment = Experiment();
-  experiment.Run(onTime, offTime, nodes, stopTime, 1000);
+  experiment.Run(onTime, offTime, nodes, stopTime, packetSize, radius);
 
-  NS_LOG_DEBUG("Traffic calls");
+  NS_LOG_UNCOND("Traffic calls");
   offTime = StringValue("ns3::ExponentialRandomVariable[Mean=2.0|Bound=10]");
   experiment = Experiment();
-  experiment.Run(onTime, offTime, nodes, stopTime, 1000);
+  experiment.Run(onTime, offTime, nodes, stopTime, packetSize, radius);
 
-  NS_LOG_DEBUG("Traffic Uniform");
+  NS_LOG_UNCOND("Traffic Uniform");
   offTime = StringValue("ns3::UniformRandomVariable[Max=30|Min=0.1]");
   experiment = Experiment();
-  experiment.Run(onTime, offTime, nodes, stopTime, 1000);
+  experiment.Run(onTime, offTime, nodes, stopTime, packetSize, radius);
 }
