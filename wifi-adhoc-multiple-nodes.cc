@@ -46,8 +46,7 @@ class Experiment {
 Experiment::Experiment() {}
 
 void Experiment::Run(StringValue onTime, StringValue offTime, uint32_t nodes, uint32_t stopTime, uint32_t packetSizeOnOff, uint32_t radius) {
-  double interval = 0.5;	// seconds
-  Time interPacketInterval = Seconds(interval);
+
 
  	//
  	// First, we declare and initialize a few local variables that control some
@@ -134,7 +133,7 @@ void Experiment::Run(StringValue onTime, StringValue offTime, uint32_t nodes, ui
   uint32_t sourceOnOffNode = 0;
   uint32_t sinkOnOffNode = nodes - 1;
   uint16_t appport = 5000;
- 	// Conveniently, the variable "nodes" holds this node index value
+ 	
   Ptr<Node> appSourceOnOff = NodeList::GetNode(sourceOnOffNode);
  	// We want the sink to be the last node created in the topology.
  	//
