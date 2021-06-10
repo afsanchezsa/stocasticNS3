@@ -385,7 +385,7 @@ void UnderSensitivityCallback(Ptr < Packet
 //
 class Experiment
 {
-  public_colon
+  public:
   Experiment();
   void Run(Ptr<RandomVariableStream> rv);
 
@@ -722,11 +722,11 @@ int main(int argc, char *argv[])
   NS_LOG_INFO("\nDistribución Uniforme");
   experiment.Run(CreateObjectWithAttributes<UniformRandomVariable> ("Min", DoubleValue(0), "Max", DoubleValue(10)));
 
- 	// NS_LOG_INFO("\nDistribución Exponencial");
- 	// experiment.Run(CreateObjectWithAttributes<ExponentialRandomVariable>("Mean", DoubleValue(2), "Bound", DoubleValue(10)));
+ 	//NS_LOG_INFO("\nDistribución Exponencial");
+ 	//experiment.Run(CreateObjectWithAttributes<ExponentialRandomVariable>("Mean", DoubleValue(2), "Bound", DoubleValue(10)));
 
- 	// NS_LOG_INFO("\nDistribución Video on Demand");
- 	// experiment.Run(CreateObjectWithAttributes<WeibullRandomVariable>("Scale", DoubleValue(2), "Shape", DoubleValue(10)));
+ 	//NS_LOG_INFO("\nDistribución Video on Demand");
+ 	//experiment.Run(CreateObjectWithAttributes<WeibullRandomVariable>("Scale", DoubleValue(2), "Shape", DoubleValue(10)));
 
   return 0;
 }
