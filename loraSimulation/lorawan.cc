@@ -36,7 +36,7 @@ using namespace lorawan;
 NS_LOG_COMPONENT_DEFINE("LorawanNetworkSimulation");
 
 // Network settings
-int nDevices = 200;
+int nDevices = 18;
 int nGateways = 1;
 double radius = 6400;	//Note that due to model updates, 7500 m is no longer the maximum distance 
 double simulationTime = 600;
@@ -74,7 +74,19 @@ namespace std
   };
 
 };
+void configureNode(Ptr<Node> node, u_int8_t newWindowValue, u_int8_t newDataRate, uint8_t newSpreadingFactor)
+{ 
+  Ptr<NetDevice> dev = node->GetDevice(0);
+  Ptr<LoraNetDevice> lora_dev = DynamicCast<LoraNetDevice>(dev);
+  Ptr<LorawanMac> lora_mac = lora_dev->GetMac();
+  Ptr<ClassAEndDeviceLorawanMac> endDeviceMac = DynamicCast<ClassAEndDeviceLorawanMac>(lora_mac);
+  Ptr<LoraPhy> phy = lora_dev->GetPhy();
+  Ptr<EndDeviceLoraPhy> end_device_phy = DynamicCast<EndDeviceLoraPhy>(phy);
+  end_device_phy->SetSpreadingFactor(newSpreadingFactor);
+  endDeviceMac->SetSecondReceiveWindowDataRate(newWindowValue);
+  endDeviceMac->SetDataRate(newDataRate);
 
+}
 std::map<Ptr<Packet const>, std::PacketStatus> packetTracker;
 
 void CheckReceptionByAllGWsComplete(std::map<Ptr<Packet const>, std::PacketStatus>::iterator it)
@@ -302,6 +314,7 @@ void Experiment::Run(Ptr<RandomVariableStream> trafficDistribution){
     Ptr<LoraNetDevice> loraNetDevice = node->GetDevice(0)->GetObject<LoraNetDevice> ();
     Ptr<LoraPhy> phy = loraNetDevice->GetPhy();
     phy->TraceConnectWithoutContext("StartSending", MakeCallback(&TransmissionCallback));
+    configureNode(node, 1, 0, 12);
   }
 
   /*********************
@@ -393,7 +406,7 @@ void Experiment::Run(Ptr<RandomVariableStream> trafficDistribution){
    *Set up the end device's spreading factor  *
    **********************************************/
 
-  macHelper.SetSpreadingFactorsUp(endDevices, gateways, channel);
+  //macHelper.SetSpreadingFactorsUp(endDevices, gateways, channel);
 
   NS_LOG_DEBUG("Completed configuration");
 
