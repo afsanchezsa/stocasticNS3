@@ -78,14 +78,11 @@ void Experiment::Run(StringValue onTime, StringValue offTime, uint32_t nodes, ui
   WifiMacHelper mac;
   mac.SetType("ns3::AdhocWifiMac");
 
-  YansWifiPhyHelper wifiPhy = YansWifiPhyHelper::Default();
-  wifiPhy.SetPcapDataLinkType(YansWifiPhyHelper::DLT_IEEE802_11);
+  YansWifiPhyHelper wifiPhy;
+  wifiPhy.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
 
-  YansWifiChannelHelper wifiChannel;
-  wifiChannel.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
-  wifiChannel.AddPropagationLoss("ns3::TwoRayGroundPropagationLossModel",
-    "SystemLoss", DoubleValue(1),
-    "HeightAboveZ", DoubleValue(1.5));
+  YansWifiChannelHelper wifiChannel=YansWifiChannelHelper::Default();
+  
 
  	//Wifi channel creation
   wifiPhy.SetChannel(wifiChannel.Create());
