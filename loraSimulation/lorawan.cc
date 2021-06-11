@@ -38,7 +38,7 @@ NS_LOG_COMPONENT_DEFINE("LorawanNetworkSimulation");
 // Network settings
 int nDevices = 18;
 int nGateways = 1;
-double radius = 6400;	//Note that due to model updates, 7500 m is no longer the maximum distance 
+double radius = 6400;
 double simulationTime = 600;
 int packetSize = 20;
 

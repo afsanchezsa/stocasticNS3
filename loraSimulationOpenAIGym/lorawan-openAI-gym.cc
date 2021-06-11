@@ -73,8 +73,6 @@ double distanceNode(Vector pos1, Vector pos2)
 
 void configureNode(Ptr<Node> node, u_int8_t newWindowValue, u_int8_t newDataRate, uint8_t newSpreadingFactor)
 {
- 	//// end-device-lorawan-mac.h setDatarate
- 	/// y las window en class-a-end-device-lorawan-mac.h
   Ptr<NetDevice> dev = node->GetDevice(0);
   Ptr<LoraNetDevice> lora_dev = DynamicCast<LoraNetDevice> (dev);
   Ptr<LorawanMac> lora_mac = lora_dev->GetMac();
@@ -84,8 +82,7 @@ void configureNode(Ptr<Node> node, u_int8_t newWindowValue, u_int8_t newDataRate
   end_device_phy->SetSpreadingFactor(newSpreadingFactor);
   endDeviceMac->SetSecondReceiveWindowDataRate(newWindowValue);
   endDeviceMac->SetDataRate(newDataRate);
- 	//endDeviceMac->SetDataRateAdaptation(true);
- 	// std::cout<<"is enabled:"<<endDeviceMac->GetDataRateAdaptation()<<std::endl;
+
 }
 
 /*
@@ -93,9 +90,9 @@ Define observation space
 */
 Ptr<OpenGymSpace> MyGetObservationSpace(void)
 {
-  uint32_t nodeNum = 1;
+  uint32_t nodeNum = NodeList::GetNNodes ();
   float low = 0.0;
-  float high = 100.0;
+  float high = 1000.0;
   std::vector<uint32_t> shape = { nodeNum,
   };
   std::string dtype = TypeNameGet<double> ();
@@ -132,7 +129,7 @@ bool MyGetGameOver(void)
 
 Ptr<OpenGymDataContainer> MyGetObservation(void)
 {
-  uint32_t nodeNum = 1;
+  uint32_t nodeNum =NodeList::GetNNodes (); ;
   std::vector<uint32_t> shape = { nodeNum,
   };
   Ptr<OpenGymBoxContainer < double>> box = CreateObject<OpenGymBoxContainer < double>> (shape);
@@ -147,12 +144,7 @@ Ptr<OpenGymDataContainer> MyGetObservation(void)
 
     box->AddValue(distance);
   }
- 	// double a = (count - double(received))/count;
-  /*double a = double(received) / count;
-  a *= 100;
 
-  box->AddValue(floor(a));
-*/
   NS_LOG_UNCOND("MyGetObservation: " << box);
   return box;
 }
@@ -180,7 +172,7 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
     configureNode(node, 1, dataRateCorrespondence[newSpreadingFactor], newSpreadingFactor);
     i++;
   }
- 	// senderApp->SetPacketSize(actionVector.at(0));
+ 
   return true;
 }
 
@@ -198,36 +190,6 @@ void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGymInte
   openGymInterface->NotifyCurrentState();
 }
 
-void Tracer(Ptr <const Packet > packet)
-{
-  NS_LOG_UNCOND("Se perdio");
-}
-
-void printIntVector(std::vector < int>
-  const &input)
-{
-  for (std::vector<int>::size_type i = 0; i < input.size(); i++)
-  {
-    std::cout << input.at(i) << ' ';
-  }
-  std::cout << std::endl;
-}
-
-std::vector<std::string > split(const std::string &str, const std::string &delim)
-{
-  std::vector<std::string > tokens;
-  size_t prev = 0, pos = 0;
-  do {
-    pos = str.find(delim, prev);
-    if (pos == std::string::npos)
-      pos = str.length();
-    std::string token = str.substr(prev, pos - prev);
-    if (!token.empty())
-      tokens.push_back(token);
-    prev = pos + delim.length();
-  } while (pos < str.length() && prev < str.length());
-  return tokens;
-}
 
 // Network settings
 int nDevices = 18;
