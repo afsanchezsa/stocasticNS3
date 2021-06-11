@@ -80,10 +80,10 @@ try:
             if random.uniform(0,1)<epsilon:
                 action=env.action_space.sample()
             else:
-                #action = [np.argmax(q_table[level])[0]+1]
+                
                 action = [np.argmax(q_table[level])]
-            #action = calculate_cw_window(state)
-            #action=[12]#only can take values between 7 and 12
+            
+            
             print("---action: ", action)
 
             next_state, reward, done, info = env.step(action)
@@ -94,10 +94,10 @@ try:
             print("Step: ", stepIdx)
             print("---state, reward, done, info: ", next_state, reward, done, info)
             
-            #old_value=q_table[state,action]
-            #next_max = np.max(q_table[next_state])
-            #new_value = (1 - alpha) * old_value + alpha * (reward + gamma * next_max)
-            #q_table[state, action] = new_value
+            
+            
+            
+            
 
             if done:
                 stepIdx = 0
