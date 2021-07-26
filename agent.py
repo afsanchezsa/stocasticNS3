@@ -5,6 +5,7 @@ import argparse
 import time
 import numpy as np
 from ns3gym import ns3env
+import random
 
 __author__ = "Piotr Gawlowicz"
 __copyright__ = "Copyright (c) 2018, Technische Universität Berlin"
@@ -26,8 +27,8 @@ startSim = bool(args.start)
 iterationNum = int(args.iterations)
 
 port = 5555
-simTime = 10 # seconds
-stepTime = 0.01  # seconds
+simTime = 600 # seconds
+stepTime = 10 # seconds
 seed = 0
 simArgs = {"--simTime": simTime,
            "--testArg": 123,
@@ -37,42 +38,66 @@ debug = False
 env = ns3env.Ns3Env(port=port, stepTime=stepTime, startSim=startSim, simSeed=seed, simArgs=simArgs, debug=debug)
 env.reset()
 
+
 ob_space = env.observation_space
 ac_space = env.action_space
 print("Observation space: ", ob_space,  ob_space.dtype)
 print("Action space: ", ac_space, ac_space.dtype)
+q_table = np.zeros([10,13])*12
 
 stepIdx = 0
 currIt = 0
 allRxPkts = 0
 
-def calculate_cw_window(obs):
-    diff = -np.diff(obs)
-    maxDiff = np.argmax(diff)
+alpha = 0.1
+gamma = 0.6
+epsilon=0.8
+def calculate_cw_window(num):
+    
 
-    maxCw = 50
-    action = np.ones(shape=len(obs), dtype=np.uint32) * maxCw
-    action[maxDiff] = 5
+
+    k=np.random.randint(low=10,high=90, size=1)
+    action = np.ones(shape=len(state), dtype=np.uint8) *10#* k[0]
+    
+    
     return action
 
 try:
     while True:
-        obs = env.reset()
+        state = env.reset()
         reward = 0
+        mean=np.mean(np.array(state))
+        level=int(np.floor(mean/1000))
         print("Start iteration: ", currIt)
         print("Step: ", stepIdx)
-        print("---obs: ", obs)
+        print("---state: ", state)
+        print("---level: ",level)
 
         while True:
             stepIdx += 1
 
             allRxPkts += reward
-            action = calculate_cw_window(obs)
+            if random.uniform(0,1)<epsilon:
+                action=env.action_space.sample()
+            else:
+                
+                action = [np.argmax(q_table[level])]
+            
+            
             print("---action: ", action)
 
-            obs, reward, done, info = env.step(action)
+            next_state, reward, done, info = env.step(action)
+            print ("distancia promedio:",np.mean(np.array(next_state)))
+            mean=np.mean(np.array(next_state))
+            level=int(np.floor(mean/1000))
+            q_table[level,action]=q_table[level,action] if q_table[level,action]>reward else reward
             print("Step: ", stepIdx)
-            print("---obs, reward, done, info: ", obs, reward, done, info)
+            print("---state, reward, done, info: ", next_state, reward, done, info)
+            
+            
+            
+            
+            
 
             if done:
                 stepIdx = 0
