@@ -90,23 +90,165 @@
  //
  // Define logging keyword for this file
  //
- NS_LOG_COMPONENT_DEFINE ("MixedWireless");
- 
+NS_LOG_COMPONENT_DEFINE ("OpenGym");
+ /*
+Define observation space
+*/
+Ptr<OpenGymSpace> MyGetObservationSpace(void)
+{
+  uint32_t nodeNum = NodeList::GetNNodes ();
+  float low = 0.0;
+  float high = 100.0;
+  std::vector<uint32_t> shape = {nodeNum,};
+  std::string dtype = TypeNameGet<uint32_t> ();
+  Ptr<OpenGymBoxSpace> space = CreateObject<OpenGymBoxSpace> (low, high, shape, dtype);
+  NS_LOG_UNCOND ("MyGetObservationSpace: " << space);
+  return space;
+}
+
+/*
+Define action space
+*/
+Ptr<OpenGymSpace> MyGetActionSpace(void)
+{
+  uint32_t nodeNum = NodeList::GetNNodes ();
+  float low = 0.0;
+  float high = 100.0;
+  std::vector<uint32_t> shape = {nodeNum,};
+  std::string dtype = TypeNameGet<uint32_t> ();
+  Ptr<OpenGymBoxSpace> space = CreateObject<OpenGymBoxSpace> (low, high, shape, dtype);
+  NS_LOG_UNCOND ("MyGetActionSpace: " << space);
+  return space;
+}
+
+/*
+Define game over condition
+*/
+bool MyGetGameOver(void)
+{
+  bool isGameOver = false;
+  NS_LOG_UNCOND ("MyGetGameOver: " << isGameOver);
+  return isGameOver;
+}
+
+Ptr<WifiMacQueue> GetQueue(Ptr<Node> node)
+{
+  Ptr<NetDevice> dev = node->GetDevice (0);
+  Ptr<WifiNetDevice> wifi_dev = DynamicCast<WifiNetDevice> (dev);
+  Ptr<WifiMac> wifi_mac = wifi_dev->GetMac ();
+  Ptr<RegularWifiMac> rmac = DynamicCast<RegularWifiMac> (wifi_mac);
+  PointerValue ptr;
+  rmac->GetAttribute ("Txop", ptr);
+  Ptr<Txop> txop = ptr.Get<Txop> ();
+  Ptr<WifiMacQueue> queue = txop->GetWifiMacQueue ();
+  return queue;
+}
+
+/*
+Collect observations
+*/
+Ptr<OpenGymDataContainer> MyGetObservation(void)
+{
+  uint32_t nodeNum = NodeList::GetNNodes ();
+  std::vector<uint32_t> shape = {nodeNum,};
+  Ptr<OpenGymBoxContainer<uint32_t> > box = CreateObject<OpenGymBoxContainer<uint32_t> >(shape);
+
+  for (NodeList::Iterator i = NodeList::Begin (); i != NodeList::End (); ++i) {
+    Ptr<Node> node = *i;
+    Ptr<WifiMacQueue> queue = GetQueue (node);
+    uint32_t value = queue->GetNPackets();
+    box->AddValue(value);
+  }
+
+  NS_LOG_UNCOND ("MyGetObservation: " << box);
+  return box;
+}
+
+uint64_t g_rxPktNum = 0;
+void DestRxPkt (Ptr<const Packet> packet)
+{
+  NS_LOG_UNCOND ("Client received a packet of " << packet->GetSize () << " bytes");
+  g_rxPktNum++;
+}
+
+/*
+Define reward function
+*/
+float MyGetReward(void)
+{
+  static float lastValue = 0.0;
+  float reward = g_rxPktNum - lastValue;
+  lastValue = g_rxPktNum;
+  return reward;
+}
+
+/*
+Define extra info. Optional
+*/
+std::string MyGetExtraInfo(void)
+{
+  std::string myInfo = "linear-wireless-mesh";
+  myInfo += "|123";
+  NS_LOG_UNCOND("MyGetExtraInfo: " << myInfo);
+  return myInfo;
+}
+
+bool SetCw(Ptr<Node> node, uint32_t cwMinValue=0, uint32_t cwMaxValue=0)
+{
+  Ptr<NetDevice> dev = node->GetDevice (0);
+  Ptr<WifiNetDevice> wifi_dev = DynamicCast<WifiNetDevice> (dev);
+  Ptr<WifiMac> wifi_mac = wifi_dev->GetMac ();
+  Ptr<RegularWifiMac> rmac = DynamicCast<RegularWifiMac> (wifi_mac);
+  PointerValue ptr;
+  rmac->GetAttribute ("Txop", ptr);
+  Ptr<Txop> txop = ptr.Get<Txop> ();
+
+  // if both set to the same value then we have uniform backoff?
+  if (cwMinValue != 0) {
+    NS_LOG_DEBUG ("Set CW min: " << cwMinValue);
+    txop->SetMinCw(cwMinValue);
+  }
+
+  if (cwMaxValue != 0) {
+    NS_LOG_DEBUG ("Set CW max: " << cwMaxValue);
+    txop->SetMaxCw(cwMaxValue);
+  }
+  return true;
+}
+
+/*
+Execute received actions
+*/
+bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
+{
+  NS_LOG_UNCOND ("MyExecuteActions: " << action);
+
+  Ptr<OpenGymBoxContainer<uint32_t> > box = DynamicCast<OpenGymBoxContainer<uint32_t> >(action);
+  std::vector<uint32_t> actionVector = box->GetData();
+
+  uint32_t nodeNum = NodeList::GetNNodes ();
+  for (uint32_t i=0; i<nodeNum; i++)
+  {
+    Ptr<Node> node = NodeList::GetNode(i);
+    uint32_t cwSize = actionVector.at(i);
+    SetCw(node, cwSize, cwSize);
+  }
+
+  return true;
+}
+
+void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGymInterface)
+{
+  Simulator::Schedule (Seconds(envStepTime), &ScheduleNextStateRead, envStepTime, openGymInterface);
+  openGymInterface->NotifyCurrentState();
+}
+
  //
  // This function will be used below as a trace sink, if the command-line
  // argument or default value "useCourseChangeCallback" is set to true
  //
- static void
- CourseChangeCallback (std::string path, Ptr<const MobilityModel> model)
- {
-   Vector position = model->GetPosition ();
-   std::cout << "CourseChange " << path << " x=" << position.x << ", y=" << position.y << ", z=" << position.z << std::endl;
- }
- uint64_t g_rxPktNum = 0;
-void DestRxPkt (Ptr<const Packet> packet)
-{     NS_LOG_UNCOND ("Client received a packet of " << packet->GetSize () << " bytes");
-  g_rxPktNum++;
-}
+
+
  int
  main (int argc, char *argv[])
  {
@@ -116,6 +258,7 @@ void DestRxPkt (Ptr<const Packet> packet)
    //
    uint32_t backboneNodes = 20;
    uint32_t stopTime = 30;
+   double envStepTime = 0.3; 
    bool useCourseChangeCallback = false;
    uint32_t pktPerSec = 30;
    uint32_t payloadSize = 1500;
@@ -222,9 +365,9 @@ void DestRxPkt (Ptr<const Packet> packet)
   startTimeRng->SetAttribute ("Min", DoubleValue (0.0));
   startTimeRng->SetAttribute ("Max", DoubleValue (1.0));
 
-  uint16_t port = 1000;
+  uint16_t port = 5555;
   uint32_t srcNodeId = 0;
-  uint32_t destNodeId = backbone.GetN() - 1;
+  uint32_t destNodeId =1;//backbone.GetN() - 1;
   Ptr<Node> srcNode = backbone.Get(srcNodeId);
   Ptr<Node> dstNode = backbone.Get(destNodeId);
 
@@ -263,6 +406,17 @@ void DestRxPkt (Ptr<const Packet> packet)
   }
 
 
+  // OpenGym Env
+  Ptr<OpenGymInterface> openGymInterface = CreateObject<OpenGymInterface> (port);
+  openGymInterface->SetGetActionSpaceCb( MakeCallback (&MyGetActionSpace) );
+  openGymInterface->SetGetObservationSpaceCb( MakeCallback (&MyGetObservationSpace) );
+  openGymInterface->SetGetGameOverCb( MakeCallback (&MyGetGameOver) );
+  openGymInterface->SetGetObservationCb( MakeCallback (&MyGetObservation) );
+  openGymInterface->SetGetRewardCb( MakeCallback (&MyGetReward) );
+  openGymInterface->SetGetExtraInfoCb( MakeCallback (&MyGetExtraInfo) );
+  openGymInterface->SetExecuteActionsCb( MakeCallback (&MyExecuteActions) );
+
+  Simulator::Schedule (Seconds(0.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
 
 // fin recurso: https://github.com/xianliangjiang/NS3-Gym/blob/master/scratch/linear-mesh/sim.cc
 
@@ -281,36 +435,31 @@ void DestRxPkt (Ptr<const Packet> packet)
    NS_LOG_INFO ("Configure Tracing.");
    CsmaHelper csma;
  
-   //
-   // Let's set up some ns-2-like ascii traces, using another helper class
-   //
+ 
    AsciiTraceHelper ascii;
    Ptr<OutputStreamWrapper> stream = ascii.CreateFileStream ("mixed-wireless.tr");
    wifiPhy.EnableAsciiAll (stream);
    csma.EnableAsciiAll (stream);
    internet.EnableAsciiIpv4All (stream);
  
-   // Csma captures in non-promiscuous mode
+
    csma.EnablePcapAll ("mixed-wireless", false);
-   // pcap captures on the backbone wifi devices
+
    wifiPhy.EnablePcap ("mixed-wireless", backboneDevices, false);
-   // pcap trace on the application data sink
-   //wifiPhy.EnablePcap ("mixed-wireless", appSink->GetId (), 0);
+
+
  
-   if (useCourseChangeCallback == true)
-     {
-       Config::Connect ("/NodeList/*/$ns3::MobilityModel/CourseChange", MakeCallback (&CourseChangeCallback));
-     }
+   
  
    AnimationInterface anim ("mixed-wireless.xml");
- 
-   //                                                                       //
-   // Run simulation                                                        //
-   //                                                                       //
- 
-   NS_LOG_INFO ("Run Simulation.");
-   Simulator::Stop (Seconds (stopTime));
-   Simulator::Run ();
-   Simulator::Destroy ();
+
+                                                                   
+NS_LOG_UNCOND ("Simulation start");
+  Simulator::Stop (Seconds (stopTime));
+  Simulator::Run ();
+  NS_LOG_UNCOND ("Simulation stop");
+  openGymInterface->NotifySimulationEnd();
+  Simulator::Destroy ();
    
  }
+
